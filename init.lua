@@ -560,6 +560,7 @@ do
   --  See `:help lsp-config` for information about keys and how to configure
   ---@type table<string, vim.lsp.Config>
   local servers = {
+    ansiblels = {},
     -- clangd = {},
     gopls = {
       root_dir = function(bufnr, on_dir)
@@ -650,6 +651,8 @@ do
         nix = true,
         python = true,
         rust = true,
+        yaml = true,
+        ['yaml.ansible'] = true,
       }
       if enabled_filetypes[vim.bo[bufnr].filetype] then
         return { timeout_ms = 500 }
@@ -663,6 +666,8 @@ do
     -- You can also specify external formatters in here.
     formatters_by_ft = {
       rust = { 'rustfmt' },
+      yaml = { 'yamlfmt' },
+      ['yaml.ansible'] = { 'yamlfmt' },
       -- Conform can also run multiple formatters sequentially
       python = { 'black' },
       --

@@ -12,23 +12,31 @@
         let
           pkgs = import nixpkgs { inherit system; };
           tools = with pkgs; [
-            # Language servers
             gopls
-            rust-analyzer
-            typescript-language-server
-            nixd
-            lua-language-server
-            pyright
+            go
 
-            # Formatters
-            stylua
+            rust-analyzer
+            rustfmt
+
+            typescript-language-server
             prettierd
             prettier
-            jq
+
+            nixd
             nixfmt
-            rustfmt
+
+            lua-language-server
+            stylua
+
+            pyright
             black
-            go
+
+            ansible-language-server
+            ansible
+            ansible-lint
+            yamlfmt
+
+            jq
           ];
           nvim = pkgs.wrapNeovim pkgs.neovim-unwrapped {
             extraPackages = tools;
