@@ -1,9 +1,26 @@
 # neovim
 
-Run this Neovim configuration with all configured LSPs and formatters:
+Consume this configuration from another flake:
 
 ```bash
-nix run git+https://git.alexmickelson.guru/alex/neovim.git
+inputs.neovim.url = "git+https://git.alexmickelson.guru/alex/neovim.git";
+```
+
+Install Neovim and make the language servers and formatters available as shell commands:
+
+```nix
+environment.systemPackages = [
+  inputs.neovim.packages.${pkgs.system}.default
+  inputs.neovim.packages.${pkgs.system}.tools
+];
+```
+
+For a development shell, add the tools package to `packages` instead:
+
+```nix
+devShells.${pkgs.system}.default = pkgs.mkShell {
+  packages = [ inputs.neovim.packages.${pkgs.system}.tools ];
+};
 ```
 
 ```bash

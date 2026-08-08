@@ -11,26 +11,27 @@
       packages = forAllSystems (system:
         let
           pkgs = import nixpkgs { inherit system; };
-          nvim = pkgs.wrapNeovim pkgs.neovim-unwrapped {
-            extraPackages = with pkgs; [
-              # Language servers
-              gopls
-              rust-analyzer
-              nodePackages.typescript-language-server
-              nixd
-              lua-language-server
-              pyright
+          tools = with pkgs; [
+            # Language servers
+            gopls
+            rust-analyzer
+            typescript-language-server
+            nixd
+            lua-language-server
+            pyright
 
-              # Formatters
-              stylua
-              nodePackages.prettierd
-              nodePackages.prettier
-              jq
-              nixfmt-rfc-style
-              rustfmt
-              black
-              go
-            ];
+            # Formatters
+            stylua
+            prettierd
+            prettier
+            jq
+            nixfmt
+            rustfmt
+            black
+            go
+          ];
+          nvim = pkgs.wrapNeovim pkgs.neovim-unwrapped {
+            extraPackages = tools;
             extraMakeWrapperArgs = ''
               --add-flags "-u ${./init.lua}"
             '';
@@ -38,6 +39,10 @@
         in {
           default = nvim;
           neovim = nvim;
+          tools = pkgs.buildEnv {
+            name = "neovim-dev-tools";
+            paths = tools;
+          };
         });
 
       apps = forAllSystems (system: {
