@@ -15,14 +15,6 @@ environment.systemPackages = [
 ];
 ```
 
-For a development shell, add the tools package to `packages` instead:
-
-```nix
-devShells.${pkgs.system}.default = pkgs.mkShell {
-  packages = [ inputs.neovim.packages.${pkgs.system}.tools ];
-};
-```
-
 ```bash
 nix run git+https://github.com/alexmickelson/neovim.git
 ```
