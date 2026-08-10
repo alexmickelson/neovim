@@ -13,7 +13,6 @@
           pkgs = import nixpkgs { inherit system; };
           tools = with pkgs; [
             git
-            tree-sitter
 
             gopls
             go
@@ -41,8 +40,31 @@
 
             jq
           ];
+          treesitter = pkgs.vimPlugins.nvim-treesitter.withPlugins (parsers: with parsers; [
+            bash
+            c
+            diff
+            go
+            html
+            javascript
+            json
+            lua
+            luadoc
+            markdown
+            markdown_inline
+            nix
+            python
+            query
+            rust
+            tsx
+            typescript
+            vim
+            vimdoc
+            yaml
+          ]);
           nvim = pkgs.wrapNeovim pkgs.neovim-unwrapped {
             extraPackages = tools;
+            configure.packages.treesitter.start = [ treesitter ];
             extraMakeWrapperArgs = ''
               --add-flags "-u ${./init.lua}"
             '';
