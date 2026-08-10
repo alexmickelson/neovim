@@ -13,6 +13,7 @@
           pkgs = import nixpkgs { inherit system; };
           tools = with pkgs; [
             git
+            tree-sitter
 
             gopls
             go
