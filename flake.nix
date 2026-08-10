@@ -12,6 +12,8 @@
         let
           pkgs = import nixpkgs { inherit system; };
           tools = with pkgs; [
+            git
+
             gopls
             go
 
