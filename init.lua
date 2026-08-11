@@ -588,6 +588,7 @@ do
 	---@type table<string, vim.lsp.Config>
 	local servers = {
 		ansiblels = {},
+		bashls = {},
 		-- clangd = {},
 		gopls = {
 			root_dir = function(bufnr, on_dir)
@@ -714,6 +715,8 @@ do
 			javascript = { "prettierd", "prettier", stop_after_first = true },
 			json = { "jq" },
 			nix = { "nixfmt" },
+			bash = { "shfmt" },
+			sh = { "shfmt" },
 		},
 	})
 
