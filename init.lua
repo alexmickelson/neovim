@@ -45,6 +45,9 @@ do
 	vim.o.timeoutlen = 300
 	vim.o.splitright = true
 	vim.o.splitbelow = true
+	vim.o.tabstop = 2
+	vim.o.shiftwidth = 2
+	vim.o.expandtab = true
 
 	-- Sets how neovim will display certain whitespace characters in the editor.
 	--  See `:help 'list'`
@@ -904,6 +907,14 @@ do
 		pattern = "go",
 		callback = function()
 			vim.o.tabstop = 2
+		end,
+	})
+
+	vim.api.nvim_create_autocmd("FileType", {
+		pattern = "python",
+		callback = function()
+			vim.bo.tabstop = 4
+			vim.bo.shiftwidth = 4
 		end,
 	})
 end
