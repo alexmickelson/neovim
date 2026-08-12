@@ -691,8 +691,6 @@ do
 				nix = true,
 				python = true,
 				rust = true,
-				yaml = true,
-				["yaml.ansible"] = true,
 			}
 			if enabled_filetypes[vim.bo[bufnr].filetype] then
 				return { timeout_ms = 500 }
