@@ -41,9 +41,9 @@
             pyright
             black
 
-            ansible-language-server
-            ansible
-            ansible-lint
+            # ansible-language-server
+            # ansible
+            # ansible-lint
             yamlfmt
 
             jq
