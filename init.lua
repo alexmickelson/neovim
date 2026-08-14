@@ -1114,13 +1114,13 @@ do
 	local gs = require("gitsigns")
 	local function diffview_local_window()
 		local view = require("diffview.lib").get_current_view()
-		if not view or not view.cur_entry then
+		if not view or not view.cur_layout then
 			return
 		end
 
 		local RevType = require("diffview.vcs.rev").RevType
-		for _, window in ipairs(view.cur_entry.layout.windows) do
-			if window.file.rev.type == RevType.LOCAL and vim.api.nvim_win_is_valid(window.id) then
+		for _, window in ipairs(view.cur_layout.windows) do
+			if window.file and window.file.rev.type == RevType.LOCAL and type(window.id) == "number" and vim.api.nvim_win_is_valid(window.id) then
 				return view, window
 			end
 		end
