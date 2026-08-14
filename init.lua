@@ -1144,8 +1144,27 @@ do
 		end)
 	end
 
-	vim.keymap.set("n", "]c", gs.next_hunk, { desc = "Next Git hunk" })
-	vim.keymap.set("n", "[c", gs.prev_hunk, { desc = "Previous Git hunk" })
+	local function in_worktree_window(action)
+		local _, window = diffview_local_window()
+		if window then
+			vim.api.nvim_win_call(window.id, action)
+		else
+			action()
+		end
+	end
+
+	vim.keymap.set("n", "]c", function()
+		in_worktree_window(gs.next_hunk)
+	end, { desc = "Next Git hunk" })
+	vim.keymap.set("n", "[c", function()
+		in_worktree_window(gs.prev_hunk)
+	end, { desc = "Previous Git hunk" })
+	vim.keymap.set("n", "<leader>hn", function()
+		in_worktree_window(gs.next_hunk)
+	end, { desc = "Next hunk" })
+	vim.keymap.set("n", "<leader>hp", function()
+		in_worktree_window(gs.prev_hunk)
+	end, { desc = "Previous hunk" })
 
 	vim.keymap.set("n", "<leader>hs", function()
 		with_worktree_hunk(gs.stage_hunk)
@@ -1162,7 +1181,7 @@ do
 	end, { desc = "Reset selected lines" })
 
 	vim.keymap.set("n", "<leader>hu", gs.undo_stage_hunk, { desc = "Undo stage hunk" })
-	vim.keymap.set("n", "<leader>hp", gs.preview_hunk, { desc = "Preview hunk" })
+	vim.keymap.set("n", "<leader>hP", gs.preview_hunk, { desc = "Preview hunk" })
 	vim.keymap.set("n", "<leader>hb", gs.blame_line, { desc = "Blame line" })
 
 	require("diffview").setup()
