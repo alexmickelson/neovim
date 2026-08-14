@@ -609,8 +609,10 @@ do
 				gopls = {
 					hoverKind = "FullDocumentation",
 					semanticTokens = true,
-					noSemanticString = true,
-					noSemanticNumber = true,
+					semanticTokenTypes = { -- let treesitter handle these
+						string = false,
+						number = false,
+					},
 				},
 			},
 		},
