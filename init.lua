@@ -1184,7 +1184,17 @@ do
 	vim.keymap.set("n", "<leader>hP", gs.preview_hunk, { desc = "Preview hunk" })
 	vim.keymap.set("n", "<leader>hb", gs.blame_line, { desc = "Blame line" })
 
-	require("diffview").setup()
+	require("diffview").setup({
+		keymaps = {
+			view = {
+				["<leader>e"] = require("diffview.actions").toggle_files,
+				["<leader>b"] = require("diffview.actions").focus_files,
+			},
+			file_panel = {
+				["<leader>b"] = require("diffview.actions").focus_entry,
+			},
+		},
+	})
 	local diffview_open = false
 	vim.keymap.set("n", "<leader>gs", function()
 		if diffview_open then
