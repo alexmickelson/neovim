@@ -605,6 +605,14 @@ do
 					on_dir(root)
 				end
 			end,
+			settings = {
+				gopls = {
+					hoverKind = "FullDocumentation",
+					semanticTokens = true,
+					noSemanticString = true,
+					noSemanticNumber = true,
+				},
+			},
 		},
 		pyright = {},
 		rust_analyzer = {},
@@ -855,13 +863,14 @@ do
 
 			local installed_parsers = require("nvim-treesitter").get_installed("parsers")
 
-			if vim.tbl_contains(installed_parsers, language) then
-				-- Enable the parser if it is already installed
-				treesitter_try_attach(buf, language)
-			elseif not vim.tbl_contains(available_parsers, language) then
-				-- Try to enable treesitter features in case the parser exists but is not available from `nvim-treesitter`
-				treesitter_try_attach(buf, language)
-			end
+			treesitter_try_attach(buf, language)
+			-- if vim.tbl_contains(installed_parsers, language) then
+			-- 	-- Enable the parser if it is already installed
+			-- 	treesitter_try_attach(buf, language)
+			-- elseif not vim.tbl_contains(available_parsers, language) then
+			-- 	-- Try to enable treesitter features in case the parser exists but is not available from `nvim-treesitter`
+			-- 	treesitter_try_attach(buf, language)
+			-- end
 		end,
 	})
 end
