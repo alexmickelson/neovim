@@ -1109,6 +1109,60 @@ do
 	})
 
 	require("gitsigns").setup()
+	local gs = require("gitsigns")
+	local function diffview_local_window()
+		local view = require("diffview.lib").get_current_view()
+		if not view or not view.cur_entry then
+			return
+		end
+
+		local RevType = require("diffview.vcs.rev").RevType
+		for _, window in ipairs(view.cur_entry.layout.windows) do
+			if window.file.rev.type == RevType.LOCAL and vim.api.nvim_win_is_valid(window.id) then
+				return view, window
+			end
+		end
+	end
+
+	local function with_worktree_hunk(action)
+		local view, window = diffview_local_window()
+		if not window then
+			action()
+			return
+		end
+
+		vim.api.nvim_win_call(window.id, function()
+			action(nil, nil, function()
+				vim.schedule(function()
+					if view and view.update_files then
+						view:update_files()
+					end
+				end)
+			end)
+		end)
+	end
+
+	vim.keymap.set("n", "]c", gs.next_hunk, { desc = "Next Git hunk" })
+	vim.keymap.set("n", "[c", gs.prev_hunk, { desc = "Previous Git hunk" })
+
+	vim.keymap.set("n", "<leader>hs", function()
+		with_worktree_hunk(gs.stage_hunk)
+	end, { desc = "Stage hunk" })
+	vim.keymap.set("v", "<leader>hs", function()
+		gs.stage_hunk({ vim.fn.line("."), vim.fn.line("v") })
+	end, { desc = "Stage selected lines" })
+
+	vim.keymap.set("n", "<leader>hr", function()
+		with_worktree_hunk(gs.reset_hunk)
+	end, { desc = "Reset hunk" })
+	vim.keymap.set("v", "<leader>hr", function()
+		gs.reset_hunk({ vim.fn.line("."), vim.fn.line("v") })
+	end, { desc = "Reset selected lines" })
+
+	vim.keymap.set("n", "<leader>hu", gs.undo_stage_hunk, { desc = "Undo stage hunk" })
+	vim.keymap.set("n", "<leader>hp", gs.preview_hunk, { desc = "Preview hunk" })
+	vim.keymap.set("n", "<leader>hb", gs.blame_line, { desc = "Blame line" })
+
 	require("diffview").setup()
 	local diffview_open = false
 	vim.keymap.set("n", "<leader>gs", function()
