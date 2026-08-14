@@ -76,9 +76,32 @@
               yaml
             ]
           );
+          plugins = with pkgs.vimPlugins; [
+            guess-indent-nvim
+            gitsigns-nvim
+            which-key-nvim
+            tokyonight-nvim
+            todo-comments-nvim
+            mini-nvim
+            nvim-web-devicons
+
+            plenary-nvim
+            telescope-nvim
+            telescope-ui-select-nvim
+            telescope-fzf-native-nvim
+
+            fidget-nvim
+            nvim-lspconfig
+            conform-nvim
+            luasnip
+            blink-cmp
+            nvim-tree-lua
+            toggleterm-nvim
+            diffview-nvim
+          ];
           nvim = pkgs.wrapNeovim pkgs.neovim-unwrapped {
             extraPackages = tools;
-            configure.packages.treesitter.start = [ treesitter ];
+            configure.packages.main.start = [ treesitter ] ++ plugins;
             extraMakeWrapperArgs = ''
               --add-flags "-u ${./init.lua}"
             '';

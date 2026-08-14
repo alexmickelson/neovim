@@ -157,89 +157,13 @@ do
 end
 
 -- ============================================================
--- SECTION 3: PLUGIN MANAGER INTRO
--- vim.pack intro, build hooks
--- ============================================================
-do
-	-- [[ Intro to `vim.pack` ]]
-	-- `vim.pack` is a new plugin manager built into Neovim,
-	--  which provides a Lua interface for installing and managing plugins.
-	--
-	--  See `:help vim.pack`, `:help vim.pack-examples` or the
-	--  excellent blog post from the creator of vim.pack and mini.nvim:
-	--  https://echasnovski.com/blog/2026-03-13-a-guide-to-vim-pack
-	--
-	--  To inspect plugin state and pending updates, run
-	--    :lua vim.pack.update(nil, { offline = true })
-	--
-	--  To update plugins, run
-	--    :lua vim.pack.update()
-	--
-	--
-	--  Throughout the rest of the config there will be examples
-	--  of how to install and configure plugins using `vim.pack`.
-	--
-	--  In this section we set up some autocommands to run build
-	--  steps for certain plugins after they are installed or updated.
-
-	local function run_build(name, cmd, cwd)
-		local result = vim.system(cmd, { cwd = cwd }):wait()
-		if result.code ~= 0 then
-			local stderr = result.stderr or ""
-			local stdout = result.stdout or ""
-			local output = stderr ~= "" and stderr or stdout
-			if output == "" then
-				output = "No output from build command."
-			end
-			vim.notify(("Build failed for %s:\n%s"):format(name, output), vim.log.levels.ERROR)
-		end
-	end
-
-	-- This autocommand runs after a plugin is installed or updated and
-	--  runs the appropriate build command for that plugin if necessary.
-	--
-	-- See `:help vim.pack-events`
-	vim.api.nvim_create_autocmd("PackChanged", {
-		callback = function(ev)
-			local name = ev.data.spec.name
-			local kind = ev.data.kind
-			if kind ~= "install" and kind ~= "update" then
-				return
-			end
-
-			if name == "telescope-fzf-native.nvim" and vim.fn.executable("make") == 1 then
-				run_build(name, { "make" }, ev.data.path)
-				return
-			end
-
-			if name == "LuaSnip" then
-				if vim.fn.has("win32") ~= 1 and vim.fn.executable("make") == 1 then
-					run_build(name, { "make", "install_jsregexp" }, ev.data.path)
-				end
-				return
-			end
-		end,
-	})
-end
-
----Because most plugins are hosted on GitHub, you can use the helper
----function to have less repetition in the following sections.
----@param repo string
----@return string
-local function gh(repo)
-	return "https://github.com/" .. repo
-end
-
--- ============================================================
 -- SECTION 4: UI / CORE UX PLUGINS
 -- guess-indent, gitsigns, which-key, colorscheme, todo-comments, mini modules
 -- ============================================================
 do
-	vim.pack.add({ gh("NMAC427/guess-indent.nvim") })
 	require("guess-indent").setup({})
 
 	-- See `:help gitsigns` to understand what each configuration key does.
-	vim.pack.add({ gh("lewis6991/gitsigns.nvim") })
 	require("gitsigns").setup({
 		signs = {
 			add = { text = "+" }, ---@diagnostic disable-line: missing-fields
@@ -251,7 +175,6 @@ do
 	})
 
 	-- Useful plugin to show you pending keybinds.
-	vim.pack.add({ gh("folke/which-key.nvim") })
 	require("which-key").setup({
 		-- Delay between pressing a key and opening which-key (milliseconds)
 		delay = 0,
@@ -267,7 +190,6 @@ do
 
 	-- [[ Colorscheme ]]
 	-- If you want to see what colorschemes are already installed, you can use `:Telescope colorscheme`.
-	vim.pack.add({ gh("folke/tokyonight.nvim") })
 	---@diagnostic disable-next-line: missing-fields
 	require("tokyonight").setup({
 		styles = {
@@ -281,12 +203,10 @@ do
 	vim.cmd.colorscheme("tokyonight-night")
 
 	-- Highlight todo, notes, etc in comments
-	vim.pack.add({ gh("folke/todo-comments.nvim") })
 	require("todo-comments").setup({ signs = false })
 
 	-- [[ mini.nvim ]]
 	--  A collection of various small independent plugins/modules
-	vim.pack.add({ gh("nvim-mini/mini.nvim") })
 
 	-- If a nerd font is available, load the icons module for pretty icons in various plugins.
 	if vim.g.have_nerd_font then
@@ -364,19 +284,6 @@ do
 	-- This opens a window that shows you all of the keymaps for the current
 	-- Telescope picker. This is really useful to discover what Telescope can
 	-- do as well as how to actually do it!
-
-	---@type (string|vim.pack.Spec)[]
-	local telescope_plugins = {
-		gh("nvim-lua/plenary.nvim"),
-		gh("nvim-telescope/telescope.nvim"),
-		gh("nvim-telescope/telescope-ui-select.nvim"),
-	}
-	if vim.fn.executable("make") == 1 then
-		table.insert(telescope_plugins, gh("nvim-telescope/telescope-fzf-native.nvim"))
-	end
-
-	-- NOTE: You can install multiple plugins at once
-	vim.pack.add(telescope_plugins)
 
 	-- See `:help telescope` and `:help telescope.setup()`
 	require("telescope").setup({
@@ -512,7 +419,6 @@ do
 	-- and elegantly composed help section, `:help lsp-vs-treesitter`
 
 	-- Useful status updates for LSP.
-	vim.pack.add({ gh("j-hui/fidget.nvim") })
 	require("fidget").setup({})
 
 	--  This function gets run when an LSP attaches to a particular buffer.
@@ -674,10 +580,6 @@ do
 		},
 	}
 
-	vim.pack.add({
-		gh("neovim/nvim-lspconfig"),
-	})
-
 	for name, server in pairs(servers) do
 		vim.lsp.config(name, server)
 		vim.lsp.enable(name)
@@ -690,7 +592,6 @@ end
 -- ============================================================
 do
 	-- [[ Formatting ]]
-	vim.pack.add({ gh("stevearc/conform.nvim") })
 	require("conform").setup({
 		notify_on_error = false,
 		format_on_save = function(bufnr)
@@ -743,20 +644,15 @@ end
 do
 	-- [[ Snippet Engine ]]
 
-	-- NOTE: You can also specify plugin using a version range for its git tag.
-	--  See `:help vim.version.range()` for more info
-	vim.pack.add({ { src = gh("L3MON4D3/LuaSnip"), version = vim.version.range("2.*") } })
 	require("luasnip").setup({})
 
 	-- `friendly-snippets` contains a variety of premade snippets.
 	--    See the README about individual language/framework/plugin snippets:
 	--    https://github.com/rafamadriz/friendly-snippets
 	--
-	-- vim.pack.add { gh 'rafamadriz/friendly-snippets' }
 	-- require('luasnip.loaders.from_vscode').lazy_load()
 
 	-- [[ Autocomplete Engine ]]
-	vim.pack.add({ { src = gh("saghen/blink.cmp"), version = vim.version.range("1.*") } })
 	require("blink.cmp").setup({
 		keymap = {
 			-- 'default' (recommended) for mappings similar to built-in completions
@@ -929,11 +825,6 @@ do
 end
 
 do
-	vim.pack.add({
-		"https://github.com/nvim-tree/nvim-tree.lua",
-		"https://github.com/nvim-tree/nvim-web-devicons",
-	})
-
 	local api = require("nvim-tree.api")
 	local last_editor_window
 	local function is_editor_window(winid)
@@ -1042,9 +933,6 @@ do
 end
 
 do
-	vim.pack.add({
-		"https://github.com/akinsho/toggleterm.nvim",
-	})
 	require("toggleterm").setup({ start_in_insert = true })
 
 	-- Auto-enter insert mode when terminal buffer is focused (e.g., mouse click)
@@ -1083,11 +971,6 @@ do
 end
 
 -- do
---   vim.pack.add {
---     { src = 'https://github.com/akinsho/bufferline.nvim' },
---     { src = 'https://github.com/nvim-tree/nvim-web-devicons' },
---   }
---
 --   require('bufferline').setup {
 --     options = {
 --       mode = 'buffers',
@@ -1104,12 +987,6 @@ end
 -- end
 
 do
-	vim.pack.add({
-		{ src = "https://github.com/lewis6991/gitsigns.nvim" },
-		{ src = "https://github.com/sindrets/diffview.nvim" },
-		{ src = "https://github.com/nvim-lua/plenary.nvim" }, -- diffview dependency
-	})
-
 	require("gitsigns").setup()
 	local gs = require("gitsigns")
 	local function diffview_local_window()
