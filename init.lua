@@ -967,7 +967,7 @@ do
 	end
 
 	vim.keymap.set({ "n", "t" }, "<A-t>", toggle_terminal, { desc = "Toggle terminal" })
-	-t vim.keymap.set({ "n", "t" }, "<leader>t", toggle_terminal, { desc = "Toggle terminal" })
+	-- vim.keymap.set({ "n", "t" }, "<leader>t", toggle_terminal, { desc = "Toggle terminal" })
 end
 
 -- do
