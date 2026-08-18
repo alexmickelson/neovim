@@ -967,7 +967,7 @@ do
 	end
 
 	vim.keymap.set({ "n", "t" }, "<A-t>", toggle_terminal, { desc = "Toggle terminal" })
-	vim.keymap.set({ "n", "t" }, "<leader>t", toggle_terminal, { desc = "Toggle terminal" })
+	-t vim.keymap.set({ "n", "t" }, "<leader>t", toggle_terminal, { desc = "Toggle terminal" })
 end
 
 -- do
@@ -997,7 +997,12 @@ do
 
 		local RevType = require("diffview.vcs.rev").RevType
 		for _, window in ipairs(view.cur_layout.windows) do
-			if window.file and window.file.rev.type == RevType.LOCAL and type(window.id) == "number" and vim.api.nvim_win_is_valid(window.id) then
+			if
+				window.file
+				and window.file.rev.type == RevType.LOCAL
+				and type(window.id) == "number"
+				and vim.api.nvim_win_is_valid(window.id)
+			then
 				return view, window
 			end
 		end
@@ -1061,14 +1066,17 @@ do
 	vim.keymap.set("n", "<leader>hP", gs.preview_hunk, { desc = "Preview hunk" })
 	vim.keymap.set("n", "<leader>hb", gs.blame_line, { desc = "Blame line" })
 
+	local diffview_actions = require("diffview.actions")
 	require("diffview").setup({
 		keymaps = {
 			view = {
-				["<leader>e"] = require("diffview.actions").toggle_files,
-				["<leader>b"] = require("diffview.actions").focus_files,
+				{ "n", "gf", diffview_actions.goto_file_edit, { desc = "Open file at current hunk" } },
+				{ "n", "<leader>e", diffview_actions.toggle_files, { desc = "Toggle file panel" } },
+				{ "n", "<leader>b", diffview_actions.focus_files, { desc = "Focus file panel" } },
 			},
 			file_panel = {
-				["<leader>b"] = require("diffview.actions").focus_entry,
+				{ "n", "gf", diffview_actions.goto_file_edit, { desc = "Open selected file" } },
+				{ "n", "<leader>b", diffview_actions.focus_entry, { desc = "Focus selected file diff" } },
 			},
 		},
 	})
