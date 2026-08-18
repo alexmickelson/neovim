@@ -1066,8 +1066,24 @@ do
 	vim.keymap.set("n", "<leader>hP", gs.preview_hunk, { desc = "Preview hunk" })
 	vim.keymap.set("n", "<leader>hb", gs.blame_line, { desc = "Blame line" })
 
+	local diffview = require("diffview")
+	local diffview_lib = require("diffview.lib")
 	local diffview_actions = require("diffview.actions")
-	require("diffview").setup({
+	local diffview_tab
+
+	local function tracked_diffview_is_alive()
+		return diffview_tab
+			and vim.api.nvim_tabpage_is_valid(diffview_tab)
+			and diffview_lib.tabpage_to_view(diffview_tab) ~= nil
+	end
+
+	local function forget_closed_diffview()
+		if not tracked_diffview_is_alive() then
+			diffview_tab = nil
+		end
+	end
+
+	diffview.setup({
 		keymaps = {
 			view = {
 				{ "n", "gf", diffview_actions.goto_file_edit, { desc = "Open file at current hunk" } },
@@ -1080,15 +1096,30 @@ do
 			},
 		},
 	})
-	local diffview_open = false
 	vim.keymap.set("n", "<leader>gs", function()
-		if diffview_open then
-			require("diffview").close()
+		forget_closed_diffview()
+
+		if tracked_diffview_is_alive() then
+			if vim.api.nvim_get_current_tabpage() == diffview_tab then
+				diffview.close()
+				diffview_tab = nil
+			else
+				vim.api.nvim_set_current_tabpage(diffview_tab)
+			end
 		else
-			require("diffview").open()
+			diffview.open()
+
+			local view = diffview_lib.get_current_view()
+			diffview_tab = view and view.tabpage or nil
 		end
-		diffview_open = not diffview_open
 	end, { desc = "[G]it [S]how Diff View (toggle)" })
+
+	vim.api.nvim_create_autocmd("User", {
+		pattern = "DiffviewViewClosed",
+		callback = function()
+			vim.schedule(forget_closed_diffview)
+		end,
+	})
 end
 
 do
