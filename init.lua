@@ -667,16 +667,12 @@ do
 	-- [[ Autocomplete Engine ]]
 	require("blink.cmp").setup({
 		keymap = {
-			-- Enter accepts; Ctrl-N/Ctrl-P and Tab/Shift-Tab navigate suggestions.
-			-- Tab still moves between placeholders when a snippet is active.
-			preset = "enter",
-			["<C-y>"] = { "select_and_accept", "fallback" },
-			["<Tab>"] = { "select_next", "snippet_forward", "fallback" },
-			["<S-Tab>"] = { "select_prev", "snippet_backward", "fallback" },
-			["<Esc>"] = { "cancel", "fallback" },
-
-			-- For more advanced Luasnip keymaps (e.g. selecting choice nodes, expansion) see:
-			--    https://github.com/L3MON4D3/LuaSnip?tab=readme-ov-file#keymaps
+			preset = "none",
+			["<C-space>"] = { "show", "show_documentation", "hide_documentation" },
+			["<C-j>"] = { "select_next", "fallback" },
+			["<C-k>"] = { "select_prev", "fallback" },
+			["<Tab>"] = { "accept", "fallback" },
+			["<S-Tab>"] = { "cancel", "fallback" },
 		},
 
 		appearance = {
@@ -686,9 +682,8 @@ do
 		},
 
 		completion = {
-			-- By default, you may press `<c-space>` to show the documentation.
-			-- Optionally, set `auto_show = true` to show the documentation after a delay.
-			documentation = { auto_show = false, auto_show_delay_ms = 500 },
+			-- Show documentation for the currently selected completion item.
+			documentation = { auto_show = true, auto_show_delay_ms = 500 },
 		},
 
 		sources = {
@@ -706,7 +701,7 @@ do
 		-- See `:help blink-cmp-config-fuzzy` for more information
 		fuzzy = { implementation = "lua" },
 
-		-- Shows a signature help window while you type arguments for a function
+		-- Show function parameters while typing a call.
 		signature = { enabled = true },
 	})
 
@@ -726,7 +721,7 @@ do
 			return
 		end
 
-		local text = "[Enter] accept  [Tab]/[S-Tab], [C-n]/[C-p] move  [Esc] cancel"
+		local text = "[Tab] accept  [C-j]/[C-k] move  [S-Tab]/[Esc] cancel"
 		local width = vim.fn.strdisplaywidth(text)
 		local editor_width = vim.api.nvim_win_get_width(editor_win)
 		if width > editor_width then
