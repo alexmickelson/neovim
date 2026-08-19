@@ -831,7 +831,8 @@ do
 		if not vim.api.nvim_win_is_valid(winid) or vim.api.nvim_win_get_config(winid).relative ~= "" then
 			return false
 		end
-		return vim.bo[vim.api.nvim_win_get_buf(winid)].filetype ~= "NvimTree"
+		local buf = vim.api.nvim_win_get_buf(winid)
+		return vim.bo[buf].filetype ~= "NvimTree" and vim.bo[buf].buftype == ""
 	end
 	local function is_tree_window(winid)
 		return vim.api.nvim_win_is_valid(winid) and vim.bo[vim.api.nvim_win_get_buf(winid)].filetype == "NvimTree"
