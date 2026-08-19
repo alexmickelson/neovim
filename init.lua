@@ -1147,6 +1147,55 @@ do
 			},
 		},
 	})
+
+	local function git_cwd()
+		local path = vim.api.nvim_buf_get_name(0)
+		return (path ~= "" and vim.fs.root(path, ".git")) or vim.fn.getcwd()
+	end
+
+	local function refresh_git_ui()
+		gs.refresh()
+		local view = diffview_lib.get_current_view()
+		if view then
+			view:update_files()
+		end
+	end
+
+	vim.keymap.set("n", "<leader>gb", function()
+		require("telescope.builtin").git_branches()
+	end, { desc = "[G]it [B]ranches" })
+
+	vim.keymap.set("n", "<leader>gf", function()
+		vim.system({ "git", "fetch" }, { cwd = git_cwd(), text = true }, function(result)
+			vim.schedule(function()
+				if result.code == 0 then
+					vim.notify("Git fetch complete")
+					refresh_git_ui()
+				else
+					vim.notify(result.stderr, vim.log.levels.ERROR)
+				end
+			end)
+		end)
+	end, { desc = "[G]it [F]etch" })
+
+	vim.keymap.set("n", "<leader>gm", function()
+		vim.ui.input({ prompt = "Commit message: " }, function(message)
+			if not message or message == "" then
+				return
+			end
+			vim.system({ "git", "commit", "-m", message }, { cwd = git_cwd(), text = true }, function(result)
+				vim.schedule(function()
+					if result.code == 0 then
+						vim.notify("Committed: " .. message)
+						refresh_git_ui()
+					else
+						vim.notify(result.stderr, vim.log.levels.ERROR)
+					end
+				end)
+			end)
+		end)
+	end, { desc = "[G]it commit [M]essage" })
+
 	vim.keymap.set("n", "<leader>gs", function()
 		forget_closed_diffview()
 
