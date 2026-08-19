@@ -83,6 +83,7 @@ do
 	-- When completion is not visible, Blink's <S-Tab> mapping falls back to
 	-- this insert-mode unindent.
 	vim.keymap.set("i", "<S-Tab>", "<C-d>", { desc = "Unindent current line" })
+	vim.keymap.set("v", "<Tab>", ">gv", { desc = "Indent selected lines" })
 	vim.keymap.set("v", "<S-Tab>", "<gv", { desc = "Unindent selected lines" })
 	-- capital Q! counts like q!
 	vim.cmd([[
