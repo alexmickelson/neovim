@@ -1138,6 +1138,15 @@ do
 			},
 			file_panel = {
 				{ "n", "gf", diffview_actions.goto_file_edit, { desc = "Open selected file" } },
+				{
+					"n",
+					"<leader>e",
+					function()
+						diffview_actions.focus_entry()
+						diffview_actions.toggle_files()
+					end,
+					{ desc = "Open selected diff and close file panel" },
+				},
 				{ "n", "<leader>b", diffview_actions.focus_entry, { desc = "Focus selected file diff" } },
 			},
 		},
