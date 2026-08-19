@@ -671,6 +671,8 @@ do
 			["<C-space>"] = { "show", "show_documentation", "hide_documentation" },
 			["<C-j>"] = { "select_next", "fallback" },
 			["<C-k>"] = { "select_prev", "fallback" },
+			["<A-j>"] = { "select_next", "fallback" },
+			["<A-k>"] = { "select_prev", "fallback" },
 			["<Tab>"] = { "accept", "fallback" },
 			["<S-Tab>"] = { "cancel", "fallback" },
 		},
@@ -721,7 +723,7 @@ do
 			return
 		end
 
-		local text = "[Tab] accept  [C-j]/[C-k] move  [S-Tab]/[Esc] cancel"
+		local text = "[Tab] accept  [C-j]/[C-k], [A-j]/[A-k] move  [S-Tab]/[Esc] cancel"
 		local width = vim.fn.strdisplaywidth(text)
 		local editor_width = vim.api.nvim_win_get_width(editor_win)
 		if width > editor_width then
