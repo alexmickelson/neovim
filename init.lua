@@ -655,28 +655,13 @@ do
 	-- [[ Autocomplete Engine ]]
 	require("blink.cmp").setup({
 		keymap = {
-			-- 'default' (recommended) for mappings similar to built-in completions
-			--   <c-y> to accept ([y]es) the completion.
-			--    This will auto-import if your LSP supports it.
-			--    This will expand snippets if the LSP sent a snippet.
-			-- 'super-tab' for tab to accept
-			-- 'enter' for enter to accept
-			-- 'none' for no mappings
-			--
-			-- For an understanding of why the 'default' preset is recommended,
-			-- you will need to read `:help ins-completion`
-			--
-			-- No, but seriously. Please read `:help ins-completion`, it is really good!
-			--
-			-- All presets have the following mappings:
-			-- <tab>/<s-tab>: move to right/left of your snippet expansion
-			-- <c-space>: Open menu or open docs if already open
-			-- <c-n>/<c-p> or <up>/<down>: Select next/previous item
-			-- <c-e>: Hide menu
-			-- <c-k>: Toggle signature help
-			--
-			-- See `:help blink-cmp-config-keymap` for defining your own keymap
-			preset = "default",
+			-- Enter accepts; Ctrl-N/Ctrl-P and Tab/Shift-Tab navigate suggestions.
+			-- Tab still moves between placeholders when a snippet is active.
+			preset = "enter",
+			["<C-y>"] = { "select_and_accept", "fallback" },
+			["<Tab>"] = { "select_next", "snippet_forward", "fallback" },
+			["<S-Tab>"] = { "select_prev", "snippet_backward", "fallback" },
+			["<Esc>"] = { "cancel", "fallback" },
 
 			-- For more advanced Luasnip keymaps (e.g. selecting choice nodes, expansion) see:
 			--    https://github.com/L3MON4D3/LuaSnip?tab=readme-ov-file#keymaps
@@ -711,6 +696,59 @@ do
 
 		-- Shows a signature help window while you type arguments for a function
 		signature = { enabled = true },
+	})
+
+	local completion_hint_win
+	local function close_completion_hint()
+		if completion_hint_win and vim.api.nvim_win_is_valid(completion_hint_win) then
+			vim.api.nvim_win_close(completion_hint_win, true)
+		end
+		completion_hint_win = nil
+	end
+
+	local function show_completion_hint()
+		close_completion_hint()
+
+		local editor_win = vim.api.nvim_get_current_win()
+		if vim.api.nvim_win_get_config(editor_win).relative ~= "" then
+			return
+		end
+
+		local text = "[Enter] accept  [Tab]/[S-Tab], [C-n]/[C-p] move  [Esc] cancel"
+		local width = vim.fn.strdisplaywidth(text)
+		local editor_width = vim.api.nvim_win_get_width(editor_win)
+		if width > editor_width then
+			return
+		end
+
+		local buf = vim.api.nvim_create_buf(false, true)
+		vim.api.nvim_buf_set_lines(buf, 0, -1, false, { text })
+		completion_hint_win = vim.api.nvim_open_win(buf, false, {
+			relative = "win",
+			win = editor_win,
+			width = width,
+			height = 1,
+			row = vim.api.nvim_win_get_height(editor_win) - 1,
+			col = math.floor((editor_width - width) / 2),
+			style = "minimal",
+			focusable = false,
+			noautocmd = true,
+		})
+		vim.api.nvim_set_option_value("winhighlight", "Normal:StatusLine", { win = completion_hint_win })
+	end
+
+	local completion_hint_group = vim.api.nvim_create_augroup("completion_hint", { clear = true })
+	vim.api.nvim_create_autocmd("User", {
+		group = completion_hint_group,
+		pattern = "BlinkCmpMenuOpen",
+		callback = function()
+			vim.schedule(show_completion_hint)
+		end,
+	})
+	vim.api.nvim_create_autocmd("User", {
+		group = completion_hint_group,
+		pattern = "BlinkCmpMenuClose",
+		callback = close_completion_hint,
 	})
 end
 
