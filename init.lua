@@ -80,6 +80,10 @@ do
 	-- Clear highlights on search when pressing <Esc> in normal mode
 	--  See `:help hlsearch`
 	vim.keymap.set("n", "<Esc>", "<cmd>nohlsearch<CR>")
+	-- When completion is not visible, Blink's <S-Tab> mapping falls back to
+	-- this insert-mode unindent.
+	vim.keymap.set("i", "<S-Tab>", "<C-d>", { desc = "Unindent current line" })
+	vim.keymap.set("v", "<S-Tab>", "<gv", { desc = "Unindent selected lines" })
 	-- capital Q! counts like q!
 	vim.cmd([[
     command! -bang Q q<bang>
@@ -1170,6 +1174,7 @@ do
 	vim.keymap.set("n", "<leader>gb", function()
 		require("telescope.builtin").git_branches()
 	end, { desc = "[G]it [B]ranches" })
+	vim.keymap.set("n", "<leader>gB", gs.blame, { desc = "[G]it [B]lame file" })
 
 	vim.keymap.set("n", "<leader>gf", function()
 		vim.system({ "git", "fetch" }, { cwd = git_cwd(), text = true }, function(result)
