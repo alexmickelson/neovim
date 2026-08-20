@@ -98,6 +98,7 @@
             nvim-tree-lua
             toggleterm-nvim
             diffview-nvim
+            multicursor-nvim
           ];
           nvim = pkgs.wrapNeovim pkgs.neovim-unwrapped {
             extraPackages = tools;

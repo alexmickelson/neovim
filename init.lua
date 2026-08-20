@@ -188,6 +188,7 @@ do
 		spec = {
 			{ "<leader>s", group = "[S]earch", mode = { "n", "v" } },
 			{ "<leader>t", group = "[T]oggle" },
+			{ "<leader>m", group = "[M]ulti-cursor", mode = { "n", "v" } },
 			{ "<leader>h", group = "Git [H]unk", mode = { "n", "v" } }, -- Enable gitsigns recommended keymaps first
 			{ "gr", group = "LSP Actions", mode = { "n" } },
 		},
@@ -1232,6 +1233,69 @@ do
 			vim.schedule(forget_closed_diffview)
 		end,
 	})
+end
+
+-- ============================================================
+-- MULTI-CURSOR
+-- Select repeated text or lines and edit every cursor with normal Vim commands
+-- ============================================================
+do
+	local mc = require("multicursor-nvim")
+	mc.setup()
+
+	local map = vim.keymap.set
+
+	-- Add or skip matches of the word under the cursor or visual selection.
+	map({ "n", "x" }, "<C-n>", function()
+		mc.matchAddCursor(1)
+	end, { desc = "Multi-cursor: add next match" })
+	map({ "n", "x" }, "<C-p>", function()
+		mc.matchAddCursor(-1)
+	end, { desc = "Multi-cursor: add previous match" })
+	map({ "n", "x" }, "<leader>ma", mc.matchAllAddCursors, { desc = "[M]ulti-cursor: select [A]ll matches" })
+	map({ "n", "x" }, "<leader>ms", function()
+		mc.matchSkipCursor(1)
+	end, { desc = "[M]ulti-cursor: [S]kip next match" })
+	map({ "n", "x" }, "<leader>mS", function()
+		mc.matchSkipCursor(-1)
+	end, { desc = "[M]ulti-cursor: skip previous match" })
+
+	-- Add cursors vertically. Uppercase variants move without adding a cursor.
+	map({ "n", "x" }, "<leader>mj", function()
+		mc.lineAddCursor(1)
+	end, { desc = "[M]ulti-cursor: add line below" })
+	map({ "n", "x" }, "<leader>mk", function()
+		mc.lineAddCursor(-1)
+	end, { desc = "[M]ulti-cursor: add line above" })
+	map({ "n", "x" }, "<leader>mJ", function()
+		mc.lineSkipCursor(1)
+	end, { desc = "[M]ulti-cursor: skip line below" })
+	map({ "n", "x" }, "<leader>mK", function()
+		mc.lineSkipCursor(-1)
+	end, { desc = "[M]ulti-cursor: skip line above" })
+
+	-- Lock secondary cursors while repositioning the main cursor.
+	map({ "n", "x" }, "<C-q>", mc.toggleCursor, { desc = "Multi-cursor: toggle cursor at position" })
+	map("n", "<leader>mr", mc.restoreCursors, { desc = "[M]ulti-cursor: [R]estore cursors" })
+
+	-- Add or remove cursors with Ctrl + left mouse.
+	map("n", "<C-LeftMouse>", mc.handleMouse)
+	map("n", "<C-LeftDrag>", mc.handleMouseDrag)
+	map("n", "<C-LeftRelease>", mc.handleMouseRelease)
+
+	-- These mappings only exist while the buffer has multiple cursors.
+	mc.addKeymapLayer(function(layer_set)
+		layer_set({ "n", "x" }, "<leader>mx", mc.deleteCursor, {
+			desc = "[M]ulti-cursor: delete current cursor",
+		})
+		layer_set("n", "<Esc>", function()
+			if mc.cursorsEnabled() then
+				mc.clearCursors()
+			else
+				mc.enableCursors()
+			end
+		end)
+	end)
 end
 
 do
