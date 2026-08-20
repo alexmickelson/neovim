@@ -21,6 +21,7 @@
           pkgs = import nixpkgs { inherit system; };
           tools = with pkgs; [
             git
+            nerd-fonts.fira-code
 
             gopls
             go
