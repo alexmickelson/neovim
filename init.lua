@@ -1156,6 +1156,7 @@ do
 					{ desc = "Open selected diff and close file panel" },
 				},
 				{ "n", "<leader>b", diffview_actions.focus_entry, { desc = "Focus selected file diff" } },
+				{ "n", "<leader>hr", diffview_actions.restore_entry, { desc = "Reset all hunks in selected file" } },
 			},
 		},
 	})
