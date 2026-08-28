@@ -890,7 +890,9 @@ do
 		group = recent_editor_group,
 		callback = function()
 			local winid = vim.api.nvim_get_current_win()
-			if is_editor_window(winid) then
+			if is_tree_window(winid) then
+				vim.cmd.stopinsert()
+			elseif is_editor_window(winid) then
 				last_editor_window = winid
 			end
 		end,
@@ -944,7 +946,6 @@ do
 	end
 
 	require("nvim-tree").setup({
-    renderer = 
 		on_attach = tree_on_attach,
 		actions = {
 			open_file = {
