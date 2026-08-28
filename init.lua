@@ -948,6 +948,7 @@ do
 		on_attach = tree_on_attach,
 		actions = {
 			open_file = {
+				resize_window = false,
 				window_picker = {
 					enable = true,
 					picker = most_recent_editor_window,
