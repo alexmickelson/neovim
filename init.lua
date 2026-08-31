@@ -36,6 +36,8 @@ do
 		-- 	}
 		-- end
 	end)
+	vim.o.wrap = false
+	vim.o.linebreak = true
 	vim.o.breakindent = true
 	vim.o.undofile = true
 	vim.o.ignorecase = true
@@ -85,6 +87,7 @@ do
 	vim.keymap.set("i", "<S-Tab>", "<C-d>", { desc = "Unindent current line" })
 	vim.keymap.set("v", "<Tab>", ">gv", { desc = "Indent selected lines" })
 	vim.keymap.set("v", "<S-Tab>", "<gv", { desc = "Unindent selected lines" })
+	vim.keymap.set("n", "<leader>tw", "<cmd>setlocal wrap!<CR>", { desc = "[T]oggle [W]rapping" })
 	-- capital Q! counts like q!
 	vim.cmd([[
     command! -bang Q q<bang>
@@ -142,6 +145,21 @@ do
 
 	-- [[ Basic Autocommands ]]
 	--  See `:help lua-guide-autocommands`
+	local wrap_extensions = {
+		"txt",
+		"md",
+		"yml",
+		"yaml",
+		"Dockerfile",
+	}
+	vim.api.nvim_create_autocmd({ "BufEnter", "BufWinEnter" }, {
+		desc = "Enable wrapping for selected file extensions",
+		group = vim.api.nvim_create_augroup("wrap-by-extension", { clear = true }),
+		callback = function(args)
+			local extension = vim.fn.fnamemodify(args.file, ":e"):lower()
+			vim.wo.wrap = vim.tbl_contains(wrap_extensions, extension)
+		end,
+	})
 
 	-- Highlight when yanking (copying) text
 	--  Try it with `yap` in normal mode
