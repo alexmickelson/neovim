@@ -245,9 +245,10 @@ do
 		local snapped_width = min_width + math.ceil((requested_width - min_width) / step) * step
 
 		config.width = math.min(snapped_width, max_width)
-		-- Keep the window centered when its snapped width differs from the
-		-- content-sized width calculated by mini.input.
-		config.col = config.col - math.floor((config.width - old_width) / 2)
+		-- Center from the final snapped width so the input does not shift as
+		-- mini.input's content-sized width changes on every keystroke.
+		local border_width = vim.o.winborder == "none" and 0 or 2
+		config.col = math.floor((vim.o.columns - config.width - border_width) / 2)
 		return config
 	end
 
