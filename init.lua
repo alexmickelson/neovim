@@ -255,7 +255,7 @@ do
 		scope = "editor",
 		handlers = {
 			view = input.gen_view.floatwin({
-				style = "TM",
+				style = "MM",
 				adjust_config = snap_input_width,
 			}),
 		},
