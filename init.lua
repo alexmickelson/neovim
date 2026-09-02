@@ -236,10 +236,28 @@ do
 	-- Show vim.ui.input prompts, including Git commit messages, in a
 	-- Telescope-style floating window instead of the command line.
 	local input = require("mini.input")
+	local function snap_input_width(_, config)
+		local old_width = config.width
+		local min_width = 60
+		local step = 20
+		local max_width = math.max(1, math.min(100, vim.o.columns - 2))
+		local requested_width = math.max(old_width, min_width)
+		local snapped_width = min_width + math.ceil((requested_width - min_width) / step) * step
+
+		config.width = math.min(snapped_width, max_width)
+		-- Keep the window centered when its snapped width differs from the
+		-- content-sized width calculated by mini.input.
+		config.col = config.col - math.floor((config.width - old_width) / 2)
+		return config
+	end
+
 	input.setup({
 		scope = "editor",
 		handlers = {
-			view = input.gen_view.floatwin({ style = "TM" }),
+			view = input.gen_view.floatwin({
+				style = "TM",
+				adjust_config = snap_input_width,
+			}),
 		},
 	})
 
