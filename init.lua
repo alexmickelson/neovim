@@ -278,6 +278,50 @@ end
 -- SECTION 5: SEARCH & NAVIGATION
 -- Telescope setup, keymaps, LSP picker mappings
 -- ============================================================
+local last_editor_window
+
+local function is_editor_window(winid)
+	if not vim.api.nvim_win_is_valid(winid) or vim.api.nvim_win_get_config(winid).relative ~= "" then
+		return false
+	end
+
+	local buf = vim.api.nvim_win_get_buf(winid)
+	return vim.bo[buf].filetype ~= "NvimTree" and vim.bo[buf].buftype == ""
+end
+
+local function most_recent_editor_window()
+	if last_editor_window and is_editor_window(last_editor_window) then
+		return last_editor_window
+	end
+
+	for _, winid in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
+		if is_editor_window(winid) then
+			return winid
+		end
+	end
+end
+
+local function editor_window_or_split()
+	local winid = most_recent_editor_window()
+	if winid then
+		return winid
+	end
+
+	vim.cmd("new")
+	return vim.api.nvim_get_current_win()
+end
+
+vim.api.nvim_create_autocmd("WinEnter", {
+	desc = "Remember the most recently focused editor window",
+	group = vim.api.nvim_create_augroup("recent_editor_window", { clear = true }),
+	callback = function()
+		local winid = vim.api.nvim_get_current_win()
+		if is_editor_window(winid) then
+			last_editor_window = winid
+		end
+	end,
+})
+
 do
 	-- [[ Fuzzy Finder (files, lsp, etc) ]]
 	--
@@ -305,14 +349,13 @@ do
 
 	-- See `:help telescope` and `:help telescope.setup()`
 	require("telescope").setup({
-		-- You can put your default mappings / updates / etc. in here
-		--  All the info you're looking for is in `:help telescope.setup()`
-		--
-		-- defaults = {
-		--   mappings = {
-		--     i = { ['<c-enter>'] = 'to_fuzzy_refine' },
-		--   },
-		-- },
+		defaults = {
+			-- Keep file selections out of terminals, the file tree, and other
+			-- special-purpose windows.
+			get_selection_window = function()
+				return editor_window_or_split()
+			end,
+		},
 		-- pickers = {}
 		extensions = {
 			["ui-select"] = { require("telescope.themes").get_dropdown() },
@@ -891,41 +934,20 @@ end
 
 do
 	local api = require("nvim-tree.api")
-	local last_editor_window
-	local function is_editor_window(winid)
-		if not vim.api.nvim_win_is_valid(winid) or vim.api.nvim_win_get_config(winid).relative ~= "" then
-			return false
-		end
-		local buf = vim.api.nvim_win_get_buf(winid)
-		return vim.bo[buf].filetype ~= "NvimTree" and vim.bo[buf].buftype == ""
-	end
 	local function is_tree_window(winid)
 		return vim.api.nvim_win_is_valid(winid) and vim.bo[vim.api.nvim_win_get_buf(winid)].filetype == "NvimTree"
 	end
 
-	local recent_editor_group = vim.api.nvim_create_augroup("nvim_tree_recent_editor_window", { clear = true })
+	local tree_window_group = vim.api.nvim_create_augroup("nvim_tree_window", { clear = true })
 	vim.api.nvim_create_autocmd("WinEnter", {
-		group = recent_editor_group,
+		group = tree_window_group,
 		callback = function()
 			local winid = vim.api.nvim_get_current_win()
 			if is_tree_window(winid) then
 				vim.cmd.stopinsert()
-			elseif is_editor_window(winid) then
-				last_editor_window = winid
 			end
 		end,
 	})
-
-	local function most_recent_editor_window()
-		if last_editor_window and is_editor_window(last_editor_window) then
-			return last_editor_window
-		end
-		for _, winid in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
-			if is_editor_window(winid) then
-				return winid
-			end
-		end
-	end
 
 	-- This is a native Neovim popup menu, matching the style of the default
 	-- right-click menu (Inspect, Paste, Select All, ...).
@@ -970,7 +992,7 @@ do
 				resize_window = false,
 				window_picker = {
 					enable = true,
-					picker = most_recent_editor_window,
+					picker = editor_window_or_split,
 				},
 			},
 		},
