@@ -233,6 +233,16 @@ do
 		MiniIcons.mock_nvim_web_devicons()
 	end
 
+	-- Show vim.ui.input prompts, including Git commit messages, in a
+	-- Telescope-style floating window instead of the command line.
+	local input = require("mini.input")
+	input.setup({
+		scope = "editor",
+		handlers = {
+			view = input.gen_view.floatwin({ style = "TM" }),
+		},
+	})
+
 	-- Better Around/Inside textobjects
 	--
 	-- Examples:
@@ -1211,23 +1221,88 @@ do
 		end
 	end
 
+	local git_output_window
+	local function show_git_output(title, result)
+		if git_output_window and vim.api.nvim_win_is_valid(git_output_window) then
+			vim.api.nvim_win_close(git_output_window, true)
+		end
+
+		local output = {}
+		for _, stream in ipairs({ result.stdout, result.stderr }) do
+			local text = stream and vim.trim(stream) or ""
+			if text ~= "" then
+				vim.list_extend(output, vim.split(text, "\n", { plain = true }))
+			end
+		end
+		if #output == 0 then
+			output = {
+				result.code == 0 and (title .. " completed successfully.")
+					or (title .. " failed with exit code " .. result.code .. "."),
+			}
+		end
+
+		local bufnr = vim.api.nvim_create_buf(false, true)
+		vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, output)
+		vim.bo[bufnr].bufhidden = "wipe"
+		vim.bo[bufnr].filetype = "git"
+		vim.bo[bufnr].modifiable = false
+
+		local max_line_width = 0
+		for _, line in ipairs(output) do
+			max_line_width = math.max(max_line_width, vim.fn.strdisplaywidth(line))
+		end
+		local available_width = math.max(vim.o.columns - 4, 1)
+		local width =
+			math.min(math.max(40, math.min(max_line_width + 2, math.floor(vim.o.columns * 0.8))), available_width)
+		local available_height = math.max(vim.o.lines - 4, 1)
+		local height = math.min(math.max(1, math.min(#output, math.floor(vim.o.lines * 0.6))), available_height)
+
+		git_output_window = vim.api.nvim_open_win(bufnr, true, {
+			relative = "editor",
+			style = "minimal",
+			border = "rounded",
+			title = " " .. title .. " ",
+			title_pos = "center",
+			width = width,
+			height = height,
+			row = math.floor((vim.o.lines - height) / 2),
+			col = math.floor((vim.o.columns - width) / 2),
+		})
+		vim.wo[git_output_window].wrap = true
+
+		local close_output = function()
+			if git_output_window and vim.api.nvim_win_is_valid(git_output_window) then
+				vim.api.nvim_win_close(git_output_window, true)
+			end
+		end
+		vim.keymap.set("n", { "q", "<Esc>" }, close_output, { buffer = bufnr, silent = true })
+	end
+
+	local function run_git_command(args, title)
+		local command = { "git" }
+		vim.list_extend(command, args)
+		vim.system(command, { cwd = git_cwd(), text = true }, function(result)
+			vim.schedule(function()
+				show_git_output(title, result)
+				if result.code == 0 then
+					refresh_git_ui()
+				end
+			end)
+		end)
+	end
+
 	vim.keymap.set("n", "<leader>gb", function()
 		require("telescope.builtin").git_branches()
 	end, { desc = "[G]it [B]ranches" })
 	vim.keymap.set("n", "<leader>gB", gs.blame, { desc = "[G]it [B]lame file" })
 
 	vim.keymap.set("n", "<leader>gf", function()
-		vim.system({ "git", "fetch" }, { cwd = git_cwd(), text = true }, function(result)
-			vim.schedule(function()
-				if result.code == 0 then
-					vim.notify("Git fetch complete")
-					refresh_git_ui()
-				else
-					vim.notify(result.stderr, vim.log.levels.ERROR)
-				end
-			end)
-		end)
+		run_git_command({ "fetch" }, "Git Fetch")
 	end, { desc = "[G]it [F]etch" })
+
+	vim.keymap.set("n", "<leader>gp", function()
+		run_git_command({ "push" }, "Git Push")
+	end, { desc = "[G]it [P]ush" })
 
 	vim.keymap.set("n", "<leader>gm", function()
 		vim.ui.input({ prompt = "Commit message: " }, function(message)
