@@ -198,8 +198,11 @@ do
 		icons = { mappings = vim.g.have_nerd_font },
 		-- Document existing key chains
 		spec = {
+			{ "<leader>c", group = "[C]ode", mode = { "n", "v" } },
+			{ "<leader>g", group = "[G]it" },
+			{ "<leader>n", group = "[N]otifications" },
 			{ "<leader>s", group = "[S]earch", mode = { "n", "v" } },
-			{ "<leader>t", group = "[T]oggle" },
+			{ "<leader>t", group = "[T]ree / Toggle" },
 			{ "<leader>m", group = "[M]ulti-cursor", mode = { "n", "v" } },
 			{ "<leader>h", group = "Git [H]unk", mode = { "n", "v" } }, -- Enable gitsigns recommended keymaps first
 			{ "gr", group = "LSP Actions", mode = { "n" } },
@@ -222,6 +225,12 @@ do
 
 	-- Highlight todo, notes, etc in comments
 	require("todo-comments").setup({ signs = false })
+	vim.keymap.set("n", "]t", function()
+		require("todo-comments").jump_next()
+	end, { desc = "Next TODO comment" })
+	vim.keymap.set("n", "[t", function()
+		require("todo-comments").jump_prev()
+	end, { desc = "Previous TODO comment" })
 
 	-- [[ mini.nvim ]]
 	--  A collection of various small independent plugins/modules
@@ -397,12 +406,51 @@ do
 
 	-- See `:help telescope.builtin`
 	local builtin = require("telescope.builtin")
+	local broad_search_excluded_dirs = {
+		".git",
+		".cache",
+		".direnv",
+		".next",
+		".venv",
+		"build",
+		"coverage",
+		"dist",
+		"node_modules",
+		"target",
+		"vendor",
+		"venv",
+	}
+
+	local function broad_search_args()
+		local args = { "--hidden", "--no-ignore" }
+		for _, dir in ipairs(broad_search_excluded_dirs) do
+			vim.list_extend(args, { "--glob", "!**/" .. dir .. "/**" })
+		end
+		return args
+	end
+
+	local function broad_find_command()
+		local command = { "rg", "--files" }
+		vim.list_extend(command, broad_search_args())
+		return command
+	end
+
 	vim.keymap.set("n", "<leader>sh", builtin.help_tags, { desc = "[S]earch [H]elp" })
 	vim.keymap.set("n", "<leader>sk", builtin.keymaps, { desc = "[S]earch [K]eymaps" })
 	vim.keymap.set("n", "<leader>sf", builtin.find_files, { desc = "[S]earch [F]iles" })
+	vim.keymap.set("n", "<leader>sF", function()
+		builtin.find_files({ find_command = broad_find_command() })
+	end, { desc = "[S]earch [F]iles (including ignored)" })
 	vim.keymap.set("n", "<leader>ss", builtin.builtin, { desc = "[S]earch [S]elect Telescope" })
+	vim.keymap.set("n", "<leader>st", "<cmd>TodoTelescope<CR>", { desc = "[S]earch [T]ODO comments" })
 	vim.keymap.set({ "n", "v" }, "<leader>sw", builtin.grep_string, { desc = "[S]earch current [W]ord" })
+	vim.keymap.set({ "n", "v" }, "<leader>sW", function()
+		builtin.grep_string({ additional_args = broad_search_args })
+	end, { desc = "[S]earch current [W]ord (including ignored)" })
 	vim.keymap.set("n", "<leader>sg", builtin.live_grep, { desc = "[S]earch by [G]rep" })
+	vim.keymap.set("n", "<leader>sG", function()
+		builtin.live_grep({ additional_args = broad_search_args })
+	end, { desc = "[S]earch by [G]rep (including ignored)" })
 	vim.keymap.set("n", "<leader>sd", builtin.diagnostics, { desc = "[S]earch [D]iagnostics" })
 	vim.keymap.set("n", "<leader>sr", builtin.resume, { desc = "[S]earch [R]esume" })
 	vim.keymap.set("n", "<leader>s.", builtin.oldfiles, { desc = '[S]earch Recent Files ("." for repeat)' })
@@ -522,6 +570,11 @@ do
 
 	-- Useful status updates for LSP.
 	require("fidget").setup({})
+	pcall(require("telescope").load_extension, "fidget")
+	vim.keymap.set("n", "<leader>nh", function()
+		require("telescope").extensions.fidget.fidget()
+	end, { desc = "[N]otification [H]istory" })
+	vim.keymap.set("n", "<leader>nc", "<cmd>Fidget clear_history<CR>", { desc = "[N]otifications [C]lear history" })
 
 	--  This function gets run when an LSP attaches to a particular buffer.
 	--    That is to say, every time a new file is opened that is associated with
@@ -543,10 +596,12 @@ do
 			-- Rename the variable under your cursor.
 			--  Most Language Servers support renaming across files, etc.
 			map("grn", vim.lsp.buf.rename, "[R]e[n]ame")
+			map("<leader>cr", vim.lsp.buf.rename, "[C]ode [R]ename")
 
 			-- Execute a code action, usually your cursor needs to be on top of an error
 			-- or a suggestion from your LSP for this to activate.
 			map("gra", vim.lsp.buf.code_action, "[G]oto Code [A]ction", { "n", "x" })
+			map("<leader>ca", vim.lsp.buf.code_action, "[C]ode [A]ction", { "n", "x" })
 
 			-- WARN: This is not Goto Definition, this is Goto Declaration.
 			--  For example, in C this would take you to the header.
@@ -586,9 +641,9 @@ do
 			--
 			-- This may be unwanted, since they displace some of your code
 			if client and client:supports_method("textDocument/inlayHint", event.buf) then
-				map("<leader>th", function()
+				map("<leader>ch", function()
 					vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled({ bufnr = event.buf }))
-				end, "[T]oggle Inlay [H]ints")
+				end, "[C]ode Inlay [H]ints")
 			end
 		end,
 	})
@@ -737,6 +792,10 @@ do
 	vim.keymap.set({ "n", "v" }, "<leader>f", function()
 		require("conform").format({ async = true })
 	end, { desc = "[F]ormat buffer" })
+	vim.keymap.set({ "n", "v" }, "<leader>cf", function()
+		require("conform").format({ async = true })
+	end, { desc = "[C]ode [F]ormat" })
+	vim.keymap.set("n", "<leader>ci", "<cmd>ConformInfo<CR>", { desc = "[C]ode Formatter [I]nfo" })
 end
 
 -- ============================================================
@@ -1050,6 +1109,9 @@ do
 	end, {
 		desc = "Toggle file tree",
 	})
+	vim.keymap.set("n", "<leader>th", api.tree.toggle_help, { desc = "[T]ree [H]elp" })
+	vim.keymap.set("n", "<leader>ti", api.filter.git.ignored.toggle, { desc = "[T]ree toggle Git-[I]gnored files" })
+	vim.keymap.set("n", "<leader>tr", api.tree.reload, { desc = "[T]ree [R]efresh" })
 end
 
 do
@@ -1087,6 +1149,7 @@ do
 	end
 
 	vim.keymap.set({ "n", "t" }, "<A-t>", toggle_terminal, { desc = "Toggle terminal" })
+	vim.keymap.set({ "n", "t" }, "<leader>tt", toggle_terminal, { desc = "[T]oggle [T]erminal" })
 	-- vim.keymap.set({ "n", "t" }, "<leader>t", toggle_terminal, { desc = "Toggle terminal" })
 end
 
@@ -1107,7 +1170,6 @@ end
 -- end
 
 do
-	require("gitsigns").setup()
 	local gs = require("gitsigns")
 	local function diffview_local_window()
 		local view = require("diffview.lib").get_current_view()
@@ -1314,6 +1376,9 @@ do
 		require("telescope.builtin").git_branches()
 	end, { desc = "[G]it [B]ranches" })
 	vim.keymap.set("n", "<leader>gB", gs.blame, { desc = "[G]it [B]lame file" })
+	vim.keymap.set("n", "<leader>gd", gs.diffthis, { desc = "[G]it [D]iff current buffer" })
+	vim.keymap.set("n", "<leader>gh", "<cmd>DiffviewFileHistory %<CR>", { desc = "[G]it file [H]istory" })
+	vim.keymap.set("n", "<leader>gH", "<cmd>DiffviewFileHistory<CR>", { desc = "[G]it repository [H]istory" })
 
 	vim.keymap.set("n", "<leader>gf", function()
 		run_git_command({ "fetch" }, "Git Fetch")
