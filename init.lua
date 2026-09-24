@@ -25,17 +25,9 @@ do
 	vim.keymap.set("n", "<ScrollWheelUp>", "<C-y>")
 
 	vim.o.showmode = false
-	vim.schedule(function()
-		vim.o.clipboard = "unnamedplus"
-		-- if vim.env.SSH_TTY or vim.env.SSH_CONNECTION then
-		-- 	local osc52 = require("vim.ui.clipboard.osc52")
-		-- 	vim.g.clipboard = {
-		-- 		name = "OSC 52",
-		-- 		copy = { ["+"] = osc52.copy("*") },
-		-- 		paste = { ["+"] = osc52.paste("*") },
-		-- 	}
-		-- end
-	end)
+	-- Keep ordinary yanks and deletes local. Explicit "+ operations can still
+	-- use Neovim's automatically selected clipboard provider (including OSC 52).
+	vim.opt.clipboard = ""
 	vim.o.wrap = false
 	vim.o.linebreak = true
 	vim.o.breakindent = true
