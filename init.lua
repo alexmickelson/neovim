@@ -79,6 +79,11 @@ do
 	vim.keymap.set("i", "<S-Tab>", "<C-d>", { desc = "Unindent current line" })
 	vim.keymap.set("v", "<Tab>", ">gv", { desc = "Indent selected lines" })
 	vim.keymap.set("v", "<S-Tab>", "<gv", { desc = "Unindent selected lines" })
+	-- Some tmux/terminfo combinations report Home and End as the legacy
+	-- <Find> and <Select> keys. Treat those aliases as the expected motions
+	-- instead of inserting their key names in Insert mode.
+	vim.keymap.set({ "n", "i", "c", "x", "s", "o" }, "<Find>", "<Home>", { desc = "Go to start of line" })
+	vim.keymap.set({ "n", "i", "c", "x", "s", "o" }, "<Select>", "<End>", { desc = "Go to end of line" })
 	vim.keymap.set("n", "<leader>tw", "<cmd>setlocal wrap!<CR>", { desc = "[T]oggle [W]rapping" })
 	-- capital Q! counts like q!
 	vim.cmd([[
