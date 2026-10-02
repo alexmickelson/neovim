@@ -342,7 +342,7 @@ local function editor_window_or_split()
 		return winid
 	end
 
-	vim.cmd("new")
+	vim.cmd("vnew")
 	return vim.api.nvim_get_current_win()
 end
 
