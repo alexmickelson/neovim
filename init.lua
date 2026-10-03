@@ -1268,6 +1268,7 @@ do
 				{ "n", "gf", diffview_actions.goto_file_edit, { desc = "Open file at current hunk" } },
 				{ "n", "<leader>e", diffview_actions.toggle_files, { desc = "Toggle file panel" } },
 				{ "n", "<leader>b", diffview_actions.focus_files, { desc = "Focus file panel" } },
+				{ "n", "<leader>gl", diffview_actions.cycle_layout, { desc = "[G]it diff [L]ayout" } },
 			},
 			file_panel = {
 				{ "n", "gf", diffview_actions.goto_file_edit, { desc = "Open selected file" } },
@@ -1281,6 +1282,7 @@ do
 					{ desc = "Open selected diff and close file panel" },
 				},
 				{ "n", "<leader>b", diffview_actions.focus_entry, { desc = "Focus selected file diff" } },
+				{ "n", "<leader>gl", diffview_actions.cycle_layout, { desc = "[G]it diff [L]ayout" } },
 				{ "n", "<leader>hr", diffview_actions.restore_entry, { desc = "Reset all hunks in selected file" } },
 			},
 		},
