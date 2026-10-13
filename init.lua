@@ -42,6 +42,8 @@ do
 	vim.o.tabstop = 2
 	vim.o.shiftwidth = 2
 	vim.o.expandtab = true
+	vim.o.foldlevelstart = 99 -- Keep folds open when first opening a buffer
+	vim.o.foldcolumn = "auto:1" -- Show fold controls when folds are available
 
 	-- Sets how neovim will display certain whitespace characters in the editor.
 	--  See `:help 'list'`
@@ -85,6 +87,9 @@ do
 	vim.keymap.set({ "n", "i", "c", "x", "s", "o" }, "<Find>", "<Home>", { desc = "Go to start of line" })
 	vim.keymap.set({ "n", "i", "c", "x", "s", "o" }, "<Select>", "<End>", { desc = "Go to end of line" })
 	vim.keymap.set("n", "<leader>tw", "<cmd>setlocal wrap!<CR>", { desc = "[T]oggle [W]rapping" })
+	vim.keymap.set("n", "<leader>zf", "za", { desc = "Toggle fold under cursor" })
+	vim.keymap.set("n", "<leader>zc", "zM", { desc = "Close all folds" })
+	vim.keymap.set("n", "<leader>zo", "zR", { desc = "Open all folds" })
 	-- capital Q! counts like q!
 	vim.cmd([[
     command! -bang Q q<bang>
@@ -200,6 +205,7 @@ do
 			{ "<leader>n", group = "[N]otifications" },
 			{ "<leader>s", group = "[S]earch", mode = { "n", "v" } },
 			{ "<leader>t", group = "[T]ree / Toggle" },
+			{ "<leader>z", group = "Fold" },
 			{ "<leader>m", group = "[M]ulti-cursor", mode = { "n", "v" } },
 			{ "<leader>h", group = "Git [H]unk", mode = { "n", "v" } }, -- Enable gitsigns recommended keymaps first
 			{ "gr", group = "LSP Actions", mode = { "n" } },
@@ -929,8 +935,10 @@ do
 
 		-- Enable treesitter based folds
 		-- For more info on folds see `:help folds`
-		-- vim.wo.foldexpr = 'v:lua.vim.treesitter.foldexpr()'
-		-- vim.wo.foldmethod = 'expr'
+		if vim.treesitter.query.get(language, "folds") then
+			vim.wo.foldexpr = "v:lua.vim.treesitter.foldexpr()"
+			vim.wo.foldmethod = "expr"
+		end
 
 		-- Check if treesitter indentation is available for this language, and if so enable it
 		-- in case there is no indent query, the indentexpr will fallback to the vim's built in one
