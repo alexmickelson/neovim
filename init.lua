@@ -322,7 +322,11 @@ end
 local last_editor_window
 
 local function is_editor_window(winid)
-	if not vim.api.nvim_win_is_valid(winid) or vim.api.nvim_win_get_config(winid).relative ~= "" then
+	if
+		not vim.api.nvim_win_is_valid(winid)
+		or vim.api.nvim_win_get_tabpage(winid) ~= vim.api.nvim_get_current_tabpage()
+		or vim.api.nvim_win_get_config(winid).relative ~= ""
+	then
 		return false
 	end
 
@@ -343,6 +347,13 @@ local function most_recent_editor_window()
 end
 
 local function editor_window_or_split()
+	-- A file chosen from Telescope or the tree should open in the editor,
+	-- rather than in one of Diffview's file or diff panes.
+	local diffview_lib = package.loaded["diffview.lib"]
+	if diffview_lib and diffview_lib.get_current_view() then
+		require("diffview").close()
+	end
+
 	local winid = most_recent_editor_window()
 	if winid then
 		return winid
