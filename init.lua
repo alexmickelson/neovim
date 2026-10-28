@@ -296,6 +296,25 @@ do
 	-- - sr)'  - [S]urround [R]eplace [)] [']
 	require("mini.surround").setup()
 
+	-- Animate cursor movement, scrolling, resizing, and the file tree opening/closing.
+	local animate = require("mini.animate")
+	local is_tree_window = function(winid)
+		return vim.bo[vim.api.nvim_win_get_buf(winid)].filetype == "NvimTree"
+	end
+	animate.setup({
+		cursor = { enable = true },
+		scroll = { enable = true },
+		resize = { enable = true },
+		open = {
+			timing = animate.gen_timing.linear({ duration = 150, unit = "total" }),
+			winconfig = animate.gen_winconfig.wipe({ predicate = is_tree_window, direction = "from_edge" }),
+		},
+		close = {
+			timing = animate.gen_timing.linear({ duration = 150, unit = "total" }),
+			winconfig = animate.gen_winconfig.wipe({ predicate = is_tree_window, direction = "to_edge" }),
+		},
+	})
+
 	-- Simple and easy statusline.
 	--  You could remove this setup call if you don't like it,
 	--  and try some other statusline plugin
