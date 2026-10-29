@@ -99,6 +99,7 @@ do
     command! -bang Q q<bang>
     command! -bang Qa qa<bang>
   ]])
+	vim.keymap.set({ "n", "x", "o" }, "W", "b", { desc = "Previous word" })
 
 	-- Diagnostic Config & Keymaps
 	--  See `:help vim.diagnostic.Opts`
