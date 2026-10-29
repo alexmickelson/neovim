@@ -83,6 +83,7 @@
             which-key-nvim
             tokyonight-nvim
             todo-comments-nvim
+            nvim-highlight-colors
             mini-nvim
             nvim-web-devicons
 

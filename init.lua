@@ -232,6 +232,8 @@ do
 
 	-- Highlight todo, notes, etc in comments
 	require("todo-comments").setup({ signs = false })
+	-- Show a small color swatch beside hex and CSS color values.
+	require("nvim-highlight-colors").setup({ render = "virtual" })
 	vim.keymap.set("n", "]t", function()
 		require("todo-comments").jump_next()
 	end, { desc = "Next TODO comment" })
