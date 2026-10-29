@@ -25,6 +25,10 @@ do
 	vim.keymap.set("n", "<ScrollWheelUp>", "<C-y>")
 
 	vim.o.showmode = false
+	-- Show the command line only while it is in use; the statusline already
+	-- displays the cursor position.
+	vim.o.cmdheight = 0
+	vim.o.ruler = false
 	-- Keep ordinary yanks and deletes local. Explicit "+ operations can still
 	-- use Neovim's automatically selected clipboard provider (including OSC 52).
 	vim.opt.clipboard = ""
