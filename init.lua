@@ -1,7 +1,3 @@
--- ============================================================
--- SECTION 1: OPTIONS
--- Core Neovim settings, leaders, options
--- ============================================================
 do
 	vim.loader.enable() -- Enable faster startup by caching compiled Lua modules
 
@@ -1360,15 +1356,59 @@ do
 		end
 	end
 
+	-- Toggle between diffview's split panes and the inline single-pane diff.
+	local function toggle_diff_layout()
+		local view = diffview_lib.get_current_view()
+		if view then
+			local entry = view.cur_entry or (view.panel and view.panel.cur_file) or (view.cur_file and view:cur_file())
+			local path = entry and entry.absolute_path
+			if not path then
+				return
+			end
+			-- Let diffview finish opening before closing it (from outside its keymap dispatch).
+			vim.defer_fn(function()
+				diffview.close()
+				vim.api.nvim_set_current_win(editor_window_or_split())
+				vim.cmd.edit(vim.fn.fnameescape(path))
+				-- After BufWinEnter has refreshed mini.diff's buffer cache.
+				vim.schedule(function()
+					local mini_diff = require("mini.diff")
+					local buf = vim.api.nvim_get_current_buf()
+					if not mini_diff.get_buf_data(buf) then
+						pcall(mini_diff.enable, buf)
+					end
+					local data = mini_diff.get_buf_data(buf)
+					if data and not data.overlay then
+						mini_diff.toggle_overlay()
+					end
+				end)
+			end, 200)
+			return
+		end
+
+		local name = vim.api.nvim_buf_get_name(0)
+		local root = name ~= "" and vim.fs.root(name, ".git")
+		if not root then
+			vim.notify("Not a git-tracked file", vim.log.levels.WARN)
+			return
+		end
+		local data = require("mini.diff").get_buf_data(0)
+		if data and data.overlay then
+			require("mini.diff").toggle_overlay()
+		end
+		vim.cmd("DiffviewOpen -- " .. vim.fn.fnameescape(vim.fs.relpath(root, name)))
+	end
+
 	diffview.setup({
 		keymaps = {
 			view = {
 				{ "n", "gf", diffview_actions.goto_file_edit, { desc = "Open file at current hunk" } },
 				{ "n", "<leader>e", diffview_actions.toggle_files, { desc = "Toggle file panel" } },
 				{ "n", "<leader>b", diffview_actions.focus_files, { desc = "Focus file panel" } },
+				{ "n", "<leader>gl", toggle_diff_layout, { desc = "[G]it diff [L]ayout (inline/split)" } },
 				{
 					"n",
-					"<leader>gl",
+					"<leader>gL",
 					diffview_actions.cycle_layout,
 					{ desc = "[G]it diff [L]ayout (swap vertical/horizontal)" },
 				},
@@ -1385,9 +1425,10 @@ do
 					{ desc = "Open selected diff and close file panel" },
 				},
 				{ "n", "<leader>b", diffview_actions.focus_entry, { desc = "Focus selected file diff" } },
+				{ "n", "<leader>gl", toggle_diff_layout, { desc = "[G]it diff [L]ayout (inline/split)" } },
 				{
 					"n",
-					"<leader>gl",
+					"<leader>gL",
 					diffview_actions.cycle_layout,
 					{ desc = "[G]it diff [L]ayout (swap vertical/horizontal)" },
 				},
@@ -1395,6 +1436,9 @@ do
 			},
 		},
 	})
+
+	-- Also available outside diffview, so the same key switches back.
+	vim.keymap.set("n", "<leader>gl", toggle_diff_layout, { desc = "[G]it diff [L]ayout (inline/split)" })
 
 	local function git_cwd()
 		local path = vim.api.nvim_buf_get_name(0)
