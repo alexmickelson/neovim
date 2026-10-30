@@ -314,6 +314,9 @@ do
 	-- - sr)'  - [S]urround [R]eplace [)] [']
 	require("mini.surround").setup()
 
+	-- Inline single-pane diff against the git index ("number" view by default).
+	require("mini.diff").setup({})
+
 	-- Bar along the treesitter scope (indent fallback) under the cursor.
 	require("snacks").setup({
 		indent = {
@@ -1363,7 +1366,12 @@ do
 				{ "n", "gf", diffview_actions.goto_file_edit, { desc = "Open file at current hunk" } },
 				{ "n", "<leader>e", diffview_actions.toggle_files, { desc = "Toggle file panel" } },
 				{ "n", "<leader>b", diffview_actions.focus_files, { desc = "Focus file panel" } },
-				{ "n", "<leader>gl", diffview_actions.cycle_layout, { desc = "[G]it diff [L]ayout" } },
+				{
+					"n",
+					"<leader>gl",
+					diffview_actions.cycle_layout,
+					{ desc = "[G]it diff [L]ayout (swap vertical/horizontal)" },
+				},
 			},
 			file_panel = {
 				{ "n", "gf", diffview_actions.goto_file_edit, { desc = "Open selected file" } },
@@ -1377,7 +1385,12 @@ do
 					{ desc = "Open selected diff and close file panel" },
 				},
 				{ "n", "<leader>b", diffview_actions.focus_entry, { desc = "Focus selected file diff" } },
-				{ "n", "<leader>gl", diffview_actions.cycle_layout, { desc = "[G]it diff [L]ayout" } },
+				{
+					"n",
+					"<leader>gl",
+					diffview_actions.cycle_layout,
+					{ desc = "[G]it diff [L]ayout (swap vertical/horizontal)" },
+				},
 				{ "n", "<leader>hr", diffview_actions.restore_entry, { desc = "Reset all hunks in selected file" } },
 			},
 		},
@@ -1470,7 +1483,32 @@ do
 		require("telescope.builtin").git_branches()
 	end, { desc = "[G]it [B]ranches" })
 	vim.keymap.set("n", "<leader>gB", gs.blame, { desc = "[G]it [B]lame file" })
-	vim.keymap.set("n", "<leader>gd", gs.diffthis, { desc = "[G]it [D]iff current buffer" })
+	vim.keymap.set("n", "<leader>gd", gs.diffthis, { desc = "[G]it [D]iff in a split" })
+	vim.keymap.set("n", "<leader>gD", function()
+		local mini_diff = require("mini.diff")
+		local buf = vim.api.nvim_get_current_buf()
+
+		-- The git source attaches asynchronously; enabling is a no-op once it did.
+		if not mini_diff.get_buf_data(buf) then
+			pcall(mini_diff.enable, buf)
+		end
+		local data = mini_diff.get_buf_data(buf)
+		if not data then
+			vim.notify("mini.diff: not a git-tracked file buffer", vim.log.levels.WARN)
+			return
+		end
+
+		mini_diff.toggle_overlay()
+
+		if not data.overlay and #data.hunks == 0 then
+			vim.defer_fn(function()
+				local later = mini_diff.get_buf_data(buf)
+				if later and later.overlay and #later.hunks == 0 then
+					vim.notify("No unstaged git changes in this buffer", vim.log.levels.WARN)
+				end
+			end, 600)
+		end
+	end, { desc = "[G]it [D]iff inline overlay" })
 	vim.keymap.set("n", "<leader>gh", "<cmd>DiffviewFileHistory %<CR>", { desc = "[G]it file [H]istory" })
 	vim.keymap.set("n", "<leader>gH", "<cmd>DiffviewFileHistory<CR>", { desc = "[G]it repository [H]istory" })
 
