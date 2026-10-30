@@ -172,10 +172,21 @@ do
 	--  Try it with `yap` in normal mode
 	--  See `:help vim.hl.on_yank()`
 	vim.api.nvim_create_autocmd("TextYankPost", {
-		desc = "Highlight when yanking (copying) text",
+		desc = "Highlight yank and sync to system clipboard + tmux buffer",
 		group = vim.api.nvim_create_augroup("kickstart-highlight-yank", { clear = true }),
 		callback = function()
 			vim.hl.on_yank()
+			local event = vim.v.event
+			if event.operator ~= "y" or not event.regcontents then
+				return
+			end
+			-- Copy to system clipboard
+			vim.fn.setreg("+", event.regcontents, event.regtype)
+			-- Copy to tmux buffer if running inside tmux
+			if vim.env.TMUX then
+				local text = table.concat(event.regcontents, "\n")
+				vim.system({ "tmux", "load-buffer", "-" }, { stdin = text }, function() end)
+			end
 		end,
 	})
 end
