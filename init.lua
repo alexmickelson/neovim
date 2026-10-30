@@ -318,7 +318,12 @@ do
 	require("snacks").setup({
 		indent = {
 			indent = { enabled = false }, -- scope bar only, no static guides
-			scope = { enabled = true, char = "│", debounce = 150 }, -- ms before the bar follows the cursor
+			scope = {
+				enabled = true,
+				char = "│",
+				debounce = 150, -- ms before the bar follows the cursor
+				hl = "Comment", -- quiet, unlike the default `Special`
+			},
 		},
 		scope = {
 			enabled = true,
