@@ -85,6 +85,7 @@
             todo-comments-nvim
             nvim-highlight-colors
             mini-nvim
+            snacks-nvim
             nvim-web-devicons
 
             plenary-nvim

@@ -47,7 +47,7 @@ do
 	vim.o.shiftwidth = 2
 	vim.o.expandtab = true
 	vim.o.foldlevelstart = 99 -- Keep folds open when first opening a buffer
-	vim.o.foldcolumn = "auto:1" -- Show fold controls when folds are available
+	vim.o.foldcolumn = "0" -- The current scope is drawn by snacks.indent instead
 
 	-- Sets how neovim will display certain whitespace characters in the editor.
 	--  See `:help 'list'`
@@ -313,6 +313,18 @@ do
 	-- - sd'   - [S]urround [D]elete [']quotes
 	-- - sr)'  - [S]urround [R]eplace [)] [']
 	require("mini.surround").setup()
+
+	-- Bar along the treesitter scope (indent fallback) under the cursor.
+	require("snacks").setup({
+		indent = {
+			indent = { enabled = false }, -- scope bar only, no static guides
+			scope = { enabled = true, char = "│" },
+		},
+		scope = {
+			enabled = true,
+			keys = { textobject = { ii = false, ai = false } }, -- left to mini.ai
+		},
+	})
 
 	-- Animate cursor movement, scrolling, and the file tree opening/closing.
 	local animate = require("mini.animate")
@@ -1126,6 +1138,23 @@ do
 		end
 		vim.cmd("popup PopUp")
 	end, { desc = "Open context menu under mouse" })
+
+	-- Open a file created from the tree instead of only selecting it there.
+	api.events.subscribe(api.events.Event.FileCreated, function(payload)
+		local path = payload and payload.fname
+		if not path or path == "" then
+			return
+		end
+
+		vim.schedule(function() -- after the tree refreshes and selects the node
+			local winid = editor_window_or_split()
+			if not winid or not vim.api.nvim_win_is_valid(winid) then
+				return
+			end
+			vim.api.nvim_set_current_win(winid)
+			vim.cmd.edit(vim.fn.fnameescape(path))
+		end)
+	end)
 
 	local function tree_on_attach(bufnr)
 		api.map.on_attach.default(bufnr)
