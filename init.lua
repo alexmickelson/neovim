@@ -1297,18 +1297,60 @@ do
 	local diffview = require("diffview")
 	local diffview_lib = require("diffview.lib")
 	local diffview_actions = require("diffview.actions")
-	local diffview_tab
+	local repo_diffviews = {}
 
-	local function tracked_diffview_is_alive()
-		return diffview_tab
-			and vim.api.nvim_tabpage_is_valid(diffview_tab)
-			and diffview_lib.tabpage_to_view(diffview_tab) ~= nil
+	local function forget_closed_diffviews()
+		for i = #repo_diffviews, 1, -1 do
+			local tab = repo_diffviews[i].tab
+			if not vim.api.nvim_tabpage_is_valid(tab) or not diffview_lib.tabpage_to_view(tab) then
+				table.remove(repo_diffviews, i)
+			end
+		end
 	end
 
-	local function forget_closed_diffview()
-		if not tracked_diffview_is_alive() then
-			diffview_tab = nil
+	local function child_git_repos(dir)
+		local repos = {}
+		for name, kind in vim.fs.dir(dir) do
+			if kind == "directory" then
+				local path = vim.fs.joinpath(dir, name)
+				if vim.uv.fs_stat(vim.fs.joinpath(path, ".git")) then
+					table.insert(repos, { name = name, path = path })
+				end
+			end
 		end
+		table.sort(repos, function(a, b)
+			return a.name < b.name
+		end)
+		return repos
+	end
+
+	local function open_repo_diffview(repo)
+		diffview.open(repo and { "-C" .. repo.path } or {})
+		local view = diffview_lib.get_current_view()
+		if view then
+			table.insert(repo_diffviews, {
+				name = repo and repo.name or vim.fn.fnamemodify(view.adapter.ctx.toplevel, ":t"),
+				tab = view.tabpage,
+			})
+		end
+	end
+
+	local function switch_repo_diffview(step)
+		forget_closed_diffviews()
+		if #repo_diffviews == 0 then
+			vim.notify("No repository Diffviews are open", vim.log.levels.INFO)
+			return
+		end
+		local current = vim.api.nvim_get_current_tabpage()
+		local index = step > 0 and 0 or 1
+		for i, item in ipairs(repo_diffviews) do
+			if item.tab == current then
+				index = i
+				break
+			end
+		end
+		local next_index = ((index - 1 + step) % #repo_diffviews) + 1
+		vim.api.nvim_set_current_tabpage(repo_diffviews[next_index].tab)
 	end
 
 	diffview.setup({
@@ -1455,27 +1497,75 @@ do
 	end, { desc = "[G]it commit [M]essage" })
 
 	vim.keymap.set("n", "<leader>gs", function()
-		forget_closed_diffview()
+		forget_closed_diffviews()
 
-		if tracked_diffview_is_alive() then
-			if vim.api.nvim_get_current_tabpage() == diffview_tab then
-				diffview.close()
-				diffview_tab = nil
+		if #repo_diffviews > 0 then
+			local current = vim.api.nvim_get_current_tabpage()
+			local in_repo_diffview = false
+			for _, item in ipairs(repo_diffviews) do
+				if item.tab == current then
+					in_repo_diffview = true
+					break
+				end
+			end
+			if in_repo_diffview then
+				local tabs = repo_diffviews
+				repo_diffviews = {}
+				for _, item in ipairs(tabs) do
+					if vim.api.nvim_tabpage_is_valid(item.tab) then
+						vim.api.nvim_set_current_tabpage(item.tab)
+						diffview.close()
+					end
+				end
 			else
-				vim.api.nvim_set_current_tabpage(diffview_tab)
+				vim.api.nvim_set_current_tabpage(repo_diffviews[1].tab)
 			end
 		else
-			diffview.open()
-
-			local view = diffview_lib.get_current_view()
-			diffview_tab = view and view.tabpage or nil
+			local cwd = vim.fn.getcwd()
+			local repos = not vim.uv.fs_stat(vim.fs.joinpath(cwd, ".git")) and child_git_repos(cwd) or {}
+			if #repos > 0 then
+				local starting_tab = vim.api.nvim_get_current_tabpage()
+				for _, repo in ipairs(repos) do
+					open_repo_diffview(repo)
+					vim.api.nvim_set_current_tabpage(starting_tab)
+				end
+				if #repo_diffviews > 0 then
+					vim.api.nvim_set_current_tabpage(repo_diffviews[1].tab)
+				end
+			else
+				open_repo_diffview()
+			end
 		end
 	end, { desc = "[G]it [S]how Diff View (toggle)" })
+
+	vim.keymap.set("n", "<leader>gn", function()
+		switch_repo_diffview(1)
+	end, { desc = "[G]it [N]ext repository Diffview" })
+	vim.keymap.set("n", "<leader>gN", function()
+		switch_repo_diffview(-1)
+	end, { desc = "[G]it previous repository Diffview" })
+	vim.keymap.set("n", "<leader>gr", function()
+		forget_closed_diffviews()
+		if #repo_diffviews == 0 then
+			vim.notify("No repository Diffviews are open", vim.log.levels.INFO)
+			return
+		end
+		vim.ui.select(repo_diffviews, {
+			prompt = "Repository Diffview",
+			format_item = function(item)
+				return item.name
+			end,
+		}, function(item)
+			if item and vim.api.nvim_tabpage_is_valid(item.tab) then
+				vim.api.nvim_set_current_tabpage(item.tab)
+			end
+		end)
+	end, { desc = "[G]it [R]epository Diffview picker" })
 
 	vim.api.nvim_create_autocmd("User", {
 		pattern = "DiffviewViewClosed",
 		callback = function()
-			vim.schedule(forget_closed_diffview)
+			vim.schedule(forget_closed_diffviews)
 		end,
 	})
 end
