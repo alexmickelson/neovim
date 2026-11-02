@@ -1,7 +1,3 @@
--- ============================================================
--- SECTION 1: OPTIONS
--- Core Neovim settings, leaders, options
--- ============================================================
 do
 	vim.loader.enable() -- Enable faster startup by caching compiled Lua modules
 
@@ -47,7 +43,7 @@ do
 	vim.o.shiftwidth = 2
 	vim.o.expandtab = true
 	vim.o.foldlevelstart = 99 -- Keep folds open when first opening a buffer
-	vim.o.foldcolumn = "auto:1" -- Show fold controls when folds are available
+	vim.o.foldcolumn = "0" -- The current scope is drawn by snacks.indent instead
 
 	-- Sets how neovim will display certain whitespace characters in the editor.
 	--  See `:help 'list'`
@@ -99,6 +95,7 @@ do
     command! -bang Q q<bang>
     command! -bang Qa qa<bang>
   ]])
+	vim.keymap.set({ "n", "x", "o" }, "W", "b", { desc = "Previous word" })
 
 	-- Diagnostic Config & Keymaps
 	--  See `:help vim.diagnostic.Opts`
@@ -171,10 +168,21 @@ do
 	--  Try it with `yap` in normal mode
 	--  See `:help vim.hl.on_yank()`
 	vim.api.nvim_create_autocmd("TextYankPost", {
-		desc = "Highlight when yanking (copying) text",
+		desc = "Highlight yank and sync to system clipboard + tmux buffer",
 		group = vim.api.nvim_create_augroup("kickstart-highlight-yank", { clear = true }),
 		callback = function()
 			vim.hl.on_yank()
+			local event = vim.v.event
+			if event.operator ~= "y" or not event.regcontents then
+				return
+			end
+			-- Copy to system clipboard
+			vim.fn.setreg("+", event.regcontents, event.regtype)
+			-- Copy to tmux buffer if running inside tmux
+			if vim.env.TMUX then
+				local text = table.concat(event.regcontents, "\n")
+				vim.system({ "tmux", "load-buffer", "-" }, { stdin = text }, function() end)
+			end
 		end,
 	})
 end
@@ -301,6 +309,26 @@ do
 	-- - sd'   - [S]urround [D]elete [']quotes
 	-- - sr)'  - [S]urround [R]eplace [)] [']
 	require("mini.surround").setup()
+
+	-- Inline single-pane diff against the git index ("number" view by default).
+	require("mini.diff").setup({})
+
+	-- Bar along the treesitter scope (indent fallback) under the cursor.
+	require("snacks").setup({
+		indent = {
+			indent = { enabled = false }, -- scope bar only, no static guides
+			scope = {
+				enabled = true,
+				char = "│",
+				debounce = 150, -- ms before the bar follows the cursor
+				hl = "Comment", -- quiet, unlike the default `Special`
+			},
+		},
+		scope = {
+			enabled = true,
+			keys = { textobject = { ii = false, ai = false } }, -- left to mini.ai
+		},
+	})
 
 	-- Animate cursor movement, scrolling, and the file tree opening/closing.
 	local animate = require("mini.animate")
@@ -1115,6 +1143,23 @@ do
 		vim.cmd("popup PopUp")
 	end, { desc = "Open context menu under mouse" })
 
+	-- Open a file created from the tree instead of only selecting it there.
+	api.events.subscribe(api.events.Event.FileCreated, function(payload)
+		local path = payload and payload.fname
+		if not path or path == "" then
+			return
+		end
+
+		vim.schedule(function() -- after the tree refreshes and selects the node
+			local winid = editor_window_or_split()
+			if not winid or not vim.api.nvim_win_is_valid(winid) then
+				return
+			end
+			vim.api.nvim_set_current_win(winid)
+			vim.cmd.edit(vim.fn.fnameescape(path))
+		end)
+	end)
+
 	local function tree_on_attach(bufnr)
 		api.map.on_attach.default(bufnr)
 	end
@@ -1353,13 +1398,62 @@ do
 		vim.api.nvim_set_current_tabpage(repo_diffviews[next_index].tab)
 	end
 
+	-- Toggle between diffview's split panes and the inline single-pane diff.
+	local function toggle_diff_layout()
+		local view = diffview_lib.get_current_view()
+		if view then
+			local entry = view.cur_entry or (view.panel and view.panel.cur_file) or (view.cur_file and view:cur_file())
+			local path = entry and entry.absolute_path
+			if not path then
+				return
+			end
+			-- Let diffview finish opening before closing it (from outside its keymap dispatch).
+			vim.defer_fn(function()
+				diffview.close()
+				vim.api.nvim_set_current_win(editor_window_or_split())
+				vim.cmd.edit(vim.fn.fnameescape(path))
+				-- After BufWinEnter has refreshed mini.diff's buffer cache.
+				vim.schedule(function()
+					local mini_diff = require("mini.diff")
+					local buf = vim.api.nvim_get_current_buf()
+					if not mini_diff.get_buf_data(buf) then
+						pcall(mini_diff.enable, buf)
+					end
+					local data = mini_diff.get_buf_data(buf)
+					if data and not data.overlay then
+						mini_diff.toggle_overlay()
+					end
+				end)
+			end, 200)
+			return
+		end
+
+		local name = vim.api.nvim_buf_get_name(0)
+		local root = name ~= "" and vim.fs.root(name, ".git")
+		if not root then
+			vim.notify("Not a git-tracked file", vim.log.levels.WARN)
+			return
+		end
+		local data = require("mini.diff").get_buf_data(0)
+		if data and data.overlay then
+			require("mini.diff").toggle_overlay()
+		end
+		vim.cmd("DiffviewOpen -- " .. vim.fn.fnameescape(vim.fs.relpath(root, name)))
+	end
+
 	diffview.setup({
 		keymaps = {
 			view = {
 				{ "n", "gf", diffview_actions.goto_file_edit, { desc = "Open file at current hunk" } },
 				{ "n", "<leader>e", diffview_actions.toggle_files, { desc = "Toggle file panel" } },
 				{ "n", "<leader>b", diffview_actions.focus_files, { desc = "Focus file panel" } },
-				{ "n", "<leader>gl", diffview_actions.cycle_layout, { desc = "[G]it diff [L]ayout" } },
+				{ "n", "<leader>gl", toggle_diff_layout, { desc = "[G]it diff [L]ayout (inline/split)" } },
+				{
+					"n",
+					"<leader>gL",
+					diffview_actions.cycle_layout,
+					{ desc = "[G]it diff [L]ayout (swap vertical/horizontal)" },
+				},
 			},
 			file_panel = {
 				{ "n", "gf", diffview_actions.goto_file_edit, { desc = "Open selected file" } },
@@ -1373,11 +1467,20 @@ do
 					{ desc = "Open selected diff and close file panel" },
 				},
 				{ "n", "<leader>b", diffview_actions.focus_entry, { desc = "Focus selected file diff" } },
-				{ "n", "<leader>gl", diffview_actions.cycle_layout, { desc = "[G]it diff [L]ayout" } },
+				{ "n", "<leader>gl", toggle_diff_layout, { desc = "[G]it diff [L]ayout (inline/split)" } },
+				{
+					"n",
+					"<leader>gL",
+					diffview_actions.cycle_layout,
+					{ desc = "[G]it diff [L]ayout (swap vertical/horizontal)" },
+				},
 				{ "n", "<leader>hr", diffview_actions.restore_entry, { desc = "Reset all hunks in selected file" } },
 			},
 		},
 	})
+
+	-- Also available outside diffview, so the same key switches back.
+	vim.keymap.set("n", "<leader>gl", toggle_diff_layout, { desc = "[G]it diff [L]ayout (inline/split)" })
 
 	local function git_cwd()
 		local path = vim.api.nvim_buf_get_name(0)
@@ -1466,7 +1569,32 @@ do
 		require("telescope.builtin").git_branches()
 	end, { desc = "[G]it [B]ranches" })
 	vim.keymap.set("n", "<leader>gB", gs.blame, { desc = "[G]it [B]lame file" })
-	vim.keymap.set("n", "<leader>gd", gs.diffthis, { desc = "[G]it [D]iff current buffer" })
+	vim.keymap.set("n", "<leader>gd", gs.diffthis, { desc = "[G]it [D]iff in a split" })
+	vim.keymap.set("n", "<leader>gD", function()
+		local mini_diff = require("mini.diff")
+		local buf = vim.api.nvim_get_current_buf()
+
+		-- The git source attaches asynchronously; enabling is a no-op once it did.
+		if not mini_diff.get_buf_data(buf) then
+			pcall(mini_diff.enable, buf)
+		end
+		local data = mini_diff.get_buf_data(buf)
+		if not data then
+			vim.notify("mini.diff: not a git-tracked file buffer", vim.log.levels.WARN)
+			return
+		end
+
+		mini_diff.toggle_overlay()
+
+		if not data.overlay and #data.hunks == 0 then
+			vim.defer_fn(function()
+				local later = mini_diff.get_buf_data(buf)
+				if later and later.overlay and #later.hunks == 0 then
+					vim.notify("No unstaged git changes in this buffer", vim.log.levels.WARN)
+				end
+			end, 600)
+		end
+	end, { desc = "[G]it [D]iff inline overlay" })
 	vim.keymap.set("n", "<leader>gh", "<cmd>DiffviewFileHistory %<CR>", { desc = "[G]it file [H]istory" })
 	vim.keymap.set("n", "<leader>gH", "<cmd>DiffviewFileHistory<CR>", { desc = "[G]it repository [H]istory" })
 
