@@ -22,7 +22,6 @@
           tools = with pkgs; [
             git
             nerd-fonts.fira-code
-
             gopls
             go
 
