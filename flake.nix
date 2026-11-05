@@ -110,6 +110,7 @@
               extraMakeWrapperArgs = nixpkgs.lib.concatStringsSep " " (
                 nixpkgs.lib.optionals followSystemStyle [ "--set NVIM_FOLLOW_SYSTEM_STYLE 1" ]
                 ++ [
+                  "--set NVIM_COLORS_LUA ${./colors.lua}"
                   ''--add-flags "-u ${./init.lua}"''
                 ]
               );

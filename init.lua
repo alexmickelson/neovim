@@ -226,22 +226,12 @@ do
 
 	-- [[ Colorscheme ]]
 	-- If you want to see what colorschemes are already installed, you can use `:Telescope colorscheme`.
-	---@diagnostic disable-next-line: missing-fields
-	require("tokyonight").setup({
-		styles = {
-			comments = { italic = false }, -- Disable italics in comments
-		},
-	})
-
-	-- Load the colorscheme here.
-	-- Like many other themes, this one has different styles, and you could load
-	-- any other, such as 'tokyonight-storm', 'tokyonight-moon', or 'tokyonight-day'.
-	local system_style = vim.fn.expand("~/.config/matugen/nvim-colorscheme.lua")
-	if os.getenv("NVIM_FOLLOW_SYSTEM_STYLE") == "1" and vim.uv.fs_stat(system_style) then
-		dofile(system_style)
-	else
-		vim.cmd.colorscheme("tokyonight-night")
+	-- The colorscheme logic (system style following + hot-reload) lives in colors.lua.
+	local colors_lua = os.getenv("NVIM_COLORS_LUA")
+	if not colors_lua then
+		colors_lua = vim.fs.dirname(debug.getinfo(1, "S").source:sub(2)) .. "/colors.lua"
 	end
+	dofile(colors_lua)
 
 	-- Highlight todo, notes, etc in comments
 	require("todo-comments").setup({ signs = false })
