@@ -4,7 +4,7 @@
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
   outputs =
-    { self, nixpkgs }:
+    { self, nixpkgs }@inputs:
     let
       systems = [
         "x86_64-linux"
@@ -102,17 +102,25 @@
             diffview-nvim
             multicursor-nvim
           ];
-          nvim = pkgs.wrapNeovim pkgs.neovim-unwrapped {
-            extraPackages = tools;
-            configure.packages.main.start = [ treesitter ] ++ plugins;
-            extraMakeWrapperArgs = ''
-              --add-flags "-u ${./init.lua}"
-            '';
-          };
+          mkNeovim =
+            { followSystemStyle ? false }:
+            pkgs.wrapNeovim pkgs.neovim-unwrapped {
+              extraPackages = tools;
+              configure.packages.main.start = [ treesitter ] ++ plugins;
+              extraMakeWrapperArgs = nixpkgs.lib.concatStringsSep " " (
+                nixpkgs.lib.optionals followSystemStyle [ "--set NVIM_FOLLOW_SYSTEM_STYLE 1" ]
+                ++ [
+                  ''--add-flags "-u ${./init.lua}"''
+                ]
+              );
+            };
+          nvim = mkNeovim { };
+          nvimFollowSystemStyle = mkNeovim { followSystemStyle = true; };
         in
         {
           default = nvim;
           neovim = nvim;
+          follow-system-style = nvimFollowSystemStyle;
           tools = pkgs.buildEnv {
             name = "neovim-dev-tools";
             paths = tools;

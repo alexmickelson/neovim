@@ -236,7 +236,12 @@ do
 	-- Load the colorscheme here.
 	-- Like many other themes, this one has different styles, and you could load
 	-- any other, such as 'tokyonight-storm', 'tokyonight-moon', or 'tokyonight-day'.
-	vim.cmd.colorscheme("tokyonight-night")
+	local system_style = vim.fn.expand("~/.config/matugen/nvim-colorscheme.lua")
+	if os.getenv("NVIM_FOLLOW_SYSTEM_STYLE") == "1" and vim.uv.fs_stat(system_style) then
+		dofile(system_style)
+	else
+		vim.cmd.colorscheme("tokyonight-night")
+	end
 
 	-- Highlight todo, notes, etc in comments
 	require("todo-comments").setup({ signs = false })
