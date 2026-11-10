@@ -325,18 +325,13 @@ do
 		},
 	})
 
-	-- Animate cursor movement, scrolling, and the file tree opening/closing.
 	local animate = require("mini.animate")
 	local is_tree_window = function(winid)
 		return vim.bo[vim.api.nvim_win_get_buf(winid)].filetype == "NvimTree"
 	end
 	animate.setup({
 		cursor = { enable = true },
-		scroll = {
-			enable = true,
-			timing = animate.gen_timing.linear({ duration = 200, unit = "total" }),
-			subscroll = animate.gen_subscroll.equal({ max_output_steps = 120 }),
-		},
+		scroll = { enable = false },
 		-- Resizing the terminal with a mouse must leave panes at their final sizes.
 		resize = { enable = false },
 		open = {
